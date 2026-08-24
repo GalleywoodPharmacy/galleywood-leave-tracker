@@ -1,0 +1,128 @@
+// Galleywood Pharmacy — Staff Leave & Rota
+// Database schema (spec section 3)
+//
+// Postgres via Supabase or Neon. Run:
+//   npx prisma migrate dev --name init
+// to create these tables in your database.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LeaveType {
+  annual
+  sick
+  other
+}
+
+enum LeaveStatus {
+  pending
+  approved
+  denied
+  cancelled
+}
+
+model User {
+  id     String @id @default(cuid())
+  name   String
+  email  String @unique
+
+  // Auth. NULL passwordHash is allowed so a manager can pre-create a staff
+  // record (e.g. via Settings) before that person has ever logged in /
+  // set a password via a magic-link-style invite flow.
+  passwordHash String?
+
+  isManager Boolean @default(false)
+
+  // Leave allowances, in hours, per spec defaults.
+  allowanceAnnualHours Float @default(200)
+  allowanceSickHours   Float @default(80)
+  allowanceOtherHours  Float @default(40)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  leaveRequests       LeaveRequest[]        @relation("UserLeaveRequests")
+  decidedRequests     LeaveRequest[]        @relation("DecidedByUser")
+  coverageAssignments CoverageAssignment[]  @relation("UserCoverage")
+  coverageCreated     CoverageAssignment[]  @relation("CoverageCreatedBy")
+  loginTokens         LoginToken[]
+
+  @@map("users")
+}
+
+model LeaveRequest {
+  id     String    @id @default(cuid())
+  userId String
+  user   User      @relation("UserLeaveRequests", fields: [userId], references: [id], onDelete: Cascade)
+
+  type  LeaveType
+  // Stored as pure calendar dates (no time component) — the date range is
+  // interpreted using the opening-hours rules in lib/business-rules.ts.
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+
+  // Auto-computed from the date range by default, but editable for partial
+  // days (spec section 5, "My Leave").
+  hours Float
+  notes String?
+
+  status LeaveStatus @default(pending)
+
+  submittedAt DateTime  @default(now())
+  decidedAt   DateTime?
+  decidedById String?
+  decidedBy   User?     @relation("DecidedByUser", fields: [decidedById], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("leave_requests")
+}
+
+model CoverageAssignment {
+  id     String   @id @default(cuid())
+  date   DateTime @db.Date
+
+  userId String
+  user   User @relation("UserCoverage", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User @relation("CoverageCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  // Same person can't be double-booked to cover the same date twice.
+  @@unique([date, userId])
+  @@index([date])
+  @@map("coverage_assignments")
+}
+
+model ExtraClosedDate {
+  date  DateTime @id @db.Date
+  label String
+
+  @@map("extra_closed_dates")
+}
+
+// Single-use tokens for magic-link login / password-setup invites.
+// A manager creating a staff record (Settings) issues one of these instead
+// of a password; the recipient uses it to set their own password.
+model LoginToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose   String    // "magic-link" | "set-password"
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@map("login_tokens")
+}

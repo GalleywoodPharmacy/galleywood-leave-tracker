@@ -1,0 +1,105 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { requireManager } from "@/lib/require-manager";
+import { prisma } from "@/lib/prisma";
+import { getBalances, computeHoursForRange } from "@/lib/leave";
+import { sendLeaveDecisionEmail } from "@/lib/email";
+
+const decideSchema = z.object({ action: z.literal("decide"), decision: z.enum(["approved", "denied"]) });
+const cancelSchema = z.object({ action: z.literal("cancel") });
+const editSchema = z.object({
+  action: z.literal("edit"),
+  type: z.enum(["annual", "sick", "other"]).optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  hours: z.number().positive().optional(),
+  notes: z.string().max(2000).optional(),
+});
+
+export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+  const check = await requireManager();
+  if (check instanceof NextResponse) return check;
+  const session = check;
+
+  const existing = await prisma.leaveRequest.findUnique({
+    where: { id: params.id },
+    include: { user: true },
+  });
+  if (!existing) return NextResponse.json({ error: "Request not found" }, { status: 404 });
+
+  const body = await req.json().catch(() => ({}));
+
+  // --- Approve / deny ---
+  const decide = decideSchema.safeParse(body);
+  if (decide.success) {
+    if (existing.status !== "pending") {
+      return NextResponse.json({ error: "Only pending requests can be approved or declined" }, { status: 400 });
+    }
+    const updated = await prisma.leaveRequest.update({
+      where: { id: params.id },
+      data: { status: decide.data.decision, decidedAt: new Date(), decidedById: session.user.id },
+    });
+    await sendLeaveDecisionEmail({
+      requesterEmail: existing.user.email,
+      requesterName: existing.user.name,
+      status: decide.data.decision,
+      type: existing.type,
+      startDate: existing.startDate,
+      endDate: existing.endDate,
+    });
+    return NextResponse.json({ request: updated });
+  }
+
+  // --- Cancel (manager can cancel any pending/approved request) ---
+  const cancel = cancelSchema.safeParse(body);
+  if (cancel.success) {
+    if (existing.status !== "pending" && existing.status !== "approved") {
+      return NextResponse.json({ error: "Only pending or approved requests can be cancelled" }, { status: 400 });
+    }
+    const updated = await prisma.leaveRequest.update({ where: { id: params.id }, data: { status: "cancelled" } });
+    return NextResponse.json({ request: updated });
+  }
+
+  // --- Edit / amend (dates, hours, type, notes — status untouched) ---
+  const edit = editSchema.safeParse(body);
+  if (edit.success) {
+    const type = edit.data.type ?? existing.type;
+    const startDate = edit.data.startDate ? new Date(edit.data.startDate) : existing.startDate;
+    const endDate = edit.data.endDate ? new Date(edit.data.endDate) : existing.endDate;
+
+    if (startDate > endDate) {
+      return NextResponse.json({ error: "Start date must be on or before end date" }, { status: 400 });
+    }
+
+    const hours =
+      edit.data.hours ??
+      (edit.data.startDate || edit.data.endDate ? await computeHoursForRange(startDate, endDate) : existing.hours);
+
+    // Re-check balance excluding this request's own current hours (spec
+    // section 4) — only meaningful if it's still counted (pending/approved).
+    if (existing.status === "pending" || existing.status === "approved") {
+      const balances = await getBalances(existing.userId, existing.id);
+      const balance = balances.find((b) => b.type === type)!;
+      if (hours > balance.remainingHours) {
+        return NextResponse.json(
+          { error: `That change needs ${hours}h but only ${balance.remainingHours}h remain for ${type} leave.` },
+          { status: 400 }
+        );
+      }
+    }
+
+    const updated = await prisma.leaveRequest.update({
+      where: { id: params.id },
+      data: {
+        type,
+        startDate,
+        endDate,
+        hours,
+        notes: edit.data.notes !== undefined ? edit.data.notes || null : existing.notes,
+      },
+    });
+    return NextResponse.json({ request: updated });
+  }
+
+  return NextResponse.json({ error: "Unrecognised action" }, { status: 400 });
+}
