@@ -1,120 +1,149 @@
-import { NextResponse } from "next/server";
-import { z } from "zod";
-import { requireManager } from "@/lib/require-manager";
-import { prisma } from "@/lib/prisma";
-import { getBalances, computeHoursForRange } from "@/lib/leave";
-import { sendLeaveDecisionEmail, sendLeaveCancelledByManagerEmail, sendLeaveAmendedEmail } from "@/lib/email";
+import { Resend } from "resend";
 
-const decideSchema = z.object({ action: z.literal("decide"), decision: z.enum(["approved", "denied"]) });
-const cancelSchema = z.object({ action: z.literal("cancel") });
-const editSchema = z.object({
-  action: z.literal("edit"),
-  type: z.enum(["annual", "sick", "other"]).optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-  hours: z.number().positive().optional(),
-  notes: z.string().max(2000).optional(),
-});
+const apiKey = process.env.RESEND_API_KEY;
+const from = process.env.EMAIL_FROM || "Galleywood Pharmacy <leave@example.com>";
+const resend = apiKey ? new Resend(apiKey) : null;
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const check = await requireManager();
-  if (check instanceof NextResponse) return check;
-  const session = check;
+const APP_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
-  const existing = await prisma.leaveRequest.findUnique({
-    where: { id: params.id },
-    include: { user: true },
-  });
-  if (!existing) return NextResponse.json({ error: "Request not found" }, { status: 404 });
-
-  const body = await req.json().catch(() => ({}));
-
-  // --- Approve / deny ---
-  const decide = decideSchema.safeParse(body);
-  if (decide.success) {
-    if (existing.status !== "pending") {
-      return NextResponse.json({ error: "Only pending requests can be approved or declined" }, { status: 400 });
-    }
-    const updated = await prisma.leaveRequest.update({
-      where: { id: params.id },
-      data: { status: decide.data.decision, decidedAt: new Date(), decidedById: session.user.id },
-    });
-    await sendLeaveDecisionEmail({
-      requesterEmail: existing.user.email,
-      requesterName: existing.user.name,
-      status: decide.data.decision,
-      type: existing.type,
-      startDate: existing.startDate,
-      endDate: existing.endDate,
-    });
-    return NextResponse.json({ request: updated });
+async function send(to: string | string[], subject: string, html: string) {
+  if (!resend) {
+    console.log(`[email:skipped, no RESEND_API_KEY] to=${to} subject="${subject}"`);
+    return;
   }
-
-  // --- Cancel (manager can cancel any pending/approved request) ---
-  const cancel = cancelSchema.safeParse(body);
-  if (cancel.success) {
-    if (existing.status !== "pending" && existing.status !== "approved") {
-      return NextResponse.json({ error: "Only pending or approved requests can be cancelled" }, { status: 400 });
-    }
-    const updated = await prisma.leaveRequest.update({ where: { id: params.id }, data: { status: "cancelled" } });
-    await sendLeaveCancelledByManagerEmail({
-      requesterEmail: existing.user.email,
-      requesterName: existing.user.name,
-      type: existing.type,
-      startDate: existing.startDate,
-      endDate: existing.endDate,
-    });
-    return NextResponse.json({ request: updated });
+  try {
+    await resend.emails.send({ from, to, subject, html });
+  } catch (err) {
+    console.error("Failed to send email:", err);
   }
+}
 
-  // --- Edit / amend (dates, hours, type, notes — status untouched) ---
-  const edit = editSchema.safeParse(body);
-  if (edit.success) {
-    const type = edit.data.type ?? existing.type;
-    const startDate = edit.data.startDate ? new Date(edit.data.startDate) : existing.startDate;
-    const endDate = edit.data.endDate ? new Date(edit.data.endDate) : existing.endDate;
+function fmtDate(d: Date) {
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
 
-    if (startDate > endDate) {
-      return NextResponse.json({ error: "Start date must be on or before end date" }, { status: 400 });
-    }
+export async function sendLeaveSubmittedEmail(params: {
+  managerEmails: string[];
+  requesterName: string;
+  type: string;
+  startDate: Date;
+  endDate: Date;
+  hours: number;
+  requestId: string;
+}) {
+  if (params.managerEmails.length === 0) return;
+  const link = `${APP_URL}/team`;
+  await send(
+    params.managerEmails,
+    `New leave request from ${params.requesterName}`,
+    `<p><strong>${params.requesterName}</strong> requested <strong>${params.type}</strong> leave:
+     ${fmtDate(params.startDate)} – ${fmtDate(params.endDate)} (${params.hours}h).</p>
+     <p><a href="${link}">Review in Team &amp; Approvals</a></p>`
+  );
+}
 
-    const hours =
-      edit.data.hours ??
-      (edit.data.startDate || edit.data.endDate ? await computeHoursForRange(startDate, endDate) : existing.hours);
+export async function sendLeaveDecisionEmail(params: {
+  requesterEmail: string;
+  requesterName: string;
+  status: "approved" | "denied";
+  type: string;
+  startDate: Date;
+  endDate: Date;
+}) {
+  const verb = params.status === "approved" ? "approved" : "declined";
+  await send(
+    params.requesterEmail,
+    `Your ${params.type} leave request was ${verb}`,
+    `<p>Hi ${params.requesterName},</p>
+     <p>Your <strong>${params.type}</strong> leave request for ${fmtDate(params.startDate)} – ${fmtDate(params.endDate)}
+     has been <strong>${verb}</strong>.</p>
+     <p><a href="${APP_URL}/leave">View My Leave</a></p>`
+  );
+}
 
-    // Re-check balance excluding this request's own current hours (spec
-    // section 4) — only meaningful if it's still counted (pending/approved).
-    if (existing.status === "pending" || existing.status === "approved") {
-      const balances = await getBalances(existing.userId, existing.id);
-      const balance = balances.find((b) => b.type === type)!;
-      if (hours > balance.remainingHours) {
-        return NextResponse.json(
-          { error: `That change needs ${hours}h but only ${balance.remainingHours}h remain for ${type} leave.` },
-          { status: 400 }
-        );
-      }
-    }
+export async function sendWeeklyDigestEmail(params: {
+  managerEmails: string[];
+  upcomingApproved: { name: string; type: string; startDate: Date; endDate: Date }[];
+  coverageGapDates: Date[];
+}) {
+  if (params.managerEmails.length === 0) return;
+  const leaveRows = params.upcomingApproved
+    .map((r) => `<li>${r.name} — ${r.type} — ${fmtDate(r.startDate)} to ${fmtDate(r.endDate)}</li>`)
+    .join("");
+  const gapRows = params.coverageGapDates.map((d) => `<li>${fmtDate(d)}</li>`).join("");
 
-    const updated = await prisma.leaveRequest.update({
-      where: { id: params.id },
-      data: {
-        type,
-        startDate,
-        endDate,
-        hours,
-        notes: edit.data.notes !== undefined ? edit.data.notes || null : existing.notes,
-      },
-    });
-    await sendLeaveAmendedEmail({
-      requesterEmail: existing.user.email,
-      requesterName: existing.user.name,
-      type,
-      startDate,
-      endDate,
-      hours,
-    });
-    return NextResponse.json({ request: updated });
-  }
+  await send(
+    params.managerEmails,
+    "Weekly leave & coverage digest — Galleywood Pharmacy",
+    `<h3>Upcoming approved leave</h3><ul>${leaveRows || "<li>None</li>"}</ul>
+     <h3>Coverage gaps</h3><ul>${gapRows || "<li>None</li>"}</ul>
+     <p><a href="${APP_URL}/coverage">View Coverage</a></p>`
+  );
+}
 
-  return NextResponse.json({ error: "Unrecognised action" }, { status: 400 });
+export async function sendCoverageAddedEmail(params: {
+  managerEmails: string[];
+  covererName: string;
+  date: Date;
+  assignedBySomeoneElse: boolean;
+}) {
+  if (params.managerEmails.length === 0) return;
+  await send(
+    params.managerEmails,
+    `Coverage confirmed: ${fmtDate(params.date)}`,
+    `<p><strong>${params.covererName}</strong> is now covering <strong>${fmtDate(params.date)}</strong>.</p>
+     <p><a href="${APP_URL}/coverage">View Coverage</a></p>`
+  );
+}
+
+export async function sendLeaveWithdrawnEmail(params: {
+  managerEmails: string[];
+  requesterName: string;
+  type: string;
+  startDate: Date;
+  endDate: Date;
+}) {
+  if (params.managerEmails.length === 0) return;
+  await send(
+    params.managerEmails,
+    `${params.requesterName} withdrew a leave request`,
+    `<p><strong>${params.requesterName}</strong> withdrew their <strong>${params.type}</strong> leave request
+     for ${fmtDate(params.startDate)} – ${fmtDate(params.endDate)}.</p>
+     <p><a href="${APP_URL}/team">View Team &amp; Approvals</a></p>`
+  );
+}
+
+export async function sendLeaveAmendedEmail(params: {
+  requesterEmail: string;
+  requesterName: string;
+  type: string;
+  startDate: Date;
+  endDate: Date;
+  hours: number;
+}) {
+  await send(
+    params.requesterEmail,
+    `Your leave request was updated`,
+    `<p>Hi ${params.requesterName},</p>
+     <p>A manager updated your leave request. It now reads:
+     <strong>${params.type}</strong>, ${fmtDate(params.startDate)} – ${fmtDate(params.endDate)} (${params.hours}h).</p>
+     <p><a href="${APP_URL}/leave">View My Leave</a></p>`
+  );
+}
+
+export async function sendLeaveCancelledByManagerEmail(params: {
+  requesterEmail: string;
+  requesterName: string;
+  type: string;
+  startDate: Date;
+  endDate: Date;
+}) {
+  await send(
+    params.requesterEmail,
+    `Your leave request was cancelled`,
+    `<p>Hi ${params.requesterName},</p>
+     <p>A manager cancelled your <strong>${params.type}</strong> leave request
+     for ${fmtDate(params.startDate)} – ${fmtDate(params.endDate)}.</p>
+     <p><a href="${APP_URL}/leave">View My Leave</a></p>`
+  );
 }
