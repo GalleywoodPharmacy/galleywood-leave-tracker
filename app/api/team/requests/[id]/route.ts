@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireManager } from "@/lib/require-manager";
 import { prisma } from "@/lib/prisma";
 import { getBalances, computeHoursForRange } from "@/lib/leave";
-import { sendLeaveDecisionEmail } from "@/lib/email";
+import { sendLeaveDecisionEmail, sendLeaveCancelledByManagerEmail, sendLeaveAmendedEmail } from "@/lib/email";
 
 const decideSchema = z.object({ action: z.literal("decide"), decision: z.enum(["approved", "denied"]) });
 const cancelSchema = z.object({ action: z.literal("cancel") });
@@ -57,6 +57,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       return NextResponse.json({ error: "Only pending or approved requests can be cancelled" }, { status: 400 });
     }
     const updated = await prisma.leaveRequest.update({ where: { id: params.id }, data: { status: "cancelled" } });
+    await sendLeaveCancelledByManagerEmail({
+      requesterEmail: existing.user.email,
+      requesterName: existing.user.name,
+      type: existing.type,
+      startDate: existing.startDate,
+      endDate: existing.endDate,
+    });
     return NextResponse.json({ request: updated });
   }
 
@@ -97,6 +104,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         hours,
         notes: edit.data.notes !== undefined ? edit.data.notes || null : existing.notes,
       },
+    });
+    await sendLeaveAmendedEmail({
+      requesterEmail: existing.user.email,
+      requesterName: existing.user.name,
+      type,
+      startDate,
+      endDate,
+      hours,
     });
     return NextResponse.json({ request: updated });
   }
