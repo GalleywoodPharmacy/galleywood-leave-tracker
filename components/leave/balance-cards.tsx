@@ -9,7 +9,7 @@ function CalendarIcon() {
   );
 }
 
-export default function BalanceCards({ balance }: { balance: LeaveBalance }) {
+export default function BalanceCards({ balance, year }: { balance: LeaveBalance; year: number }) {
   const grossAllowance = balance.allowanceHours + balance.bankHolidayHours;
   const percentRemaining =
     balance.allowanceHours > 0
@@ -22,7 +22,9 @@ export default function BalanceCards({ balance }: { balance: LeaveBalance }) {
         <span className="text-primary">
           <CalendarIcon />
         </span>
-        <p className="text-sm font-medium text-ink-soft">Annual leave</p>
+        <p className="text-sm font-medium text-ink-soft">
+          <span className="font-mono text-header">{year}</span> Annual leave
+        </p>
       </div>
 
       <p className="text-3xl font-heading text-header mt-3">
@@ -58,10 +60,6 @@ export default function BalanceCards({ balance }: { balance: LeaveBalance }) {
           <span className="font-mono text-pending">-{balance.pendingHours}h</span>
         </div>
       </div>
-
-      <a href="#request-leave" className="mt-auto pt-4 text-sm font-medium text-primary hover:text-header transition-colors">
-        Request leave →
-      </a>
     </div>
   );
 }

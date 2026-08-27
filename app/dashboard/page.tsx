@@ -1,10 +1,10 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getBalance, getBankHolidayBreakdownForUser } from "@/lib/leave";
 import AppNav from "@/components/app-nav";
+import YearSelect from "@/components/year-select";
 import BalanceCards from "@/components/leave/balance-cards";
 import BankHolidayBreakdown from "@/components/leave/bank-holiday-breakdown";
 import RequestForm from "@/components/leave/request-form";
@@ -15,7 +15,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
   if (!session) redirect("/login");
 
   const now = new Date();
-  const selectedYear = searchParams.year ? parseInt(searchParams.year, 10) : now.getUTCFullYear();
+  const currentYear = now.getUTCFullYear();
+  const selectedYear = searchParams.year ? parseInt(searchParams.year, 10) : currentYear;
+
+  const yearOptions = Array.from({ length: 6 }, (_, i) => currentYear - 1 + i);
+  if (!yearOptions.includes(selectedYear)) {
+    yearOptions.push(selectedYear);
+    yearOptions.sort((a, b) => a - b);
+  }
 
   const [balance, bankHolidayItems, requests] = await Promise.all([
     getBalance(session.user.id, selectedYear),
@@ -43,25 +50,16 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
       <main className="p-6 max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <h1 className="text-xl text-header">My Leave</h1>
-          <div className="flex items-center gap-2 text-sm">
-            <Link
-              href={`/dashboard?year=${selectedYear - 1}`}
-              className="rounded-lg border border-line px-3 py-1.5 hover:bg-card transition-colors"
-            >
-              ← {selectedYear - 1}
-            </Link>
-            <span className="px-3 py-1.5 font-medium text-header font-mono">{selectedYear}</span>
-            <Link
-              href={`/dashboard?year=${selectedYear + 1}`}
-              className="rounded-lg border border-line px-3 py-1.5 hover:bg-card transition-colors"
-            >
-              {selectedYear + 1} →
-            </Link>
+          <div className="flex items-center gap-2">
+            <label htmlFor="dashboard-year" className="text-sm text-ink-soft">
+              Viewing
+            </label>
+            <YearSelect years={yearOptions} selectedYear={selectedYear} basePath="/dashboard" />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
-          <BalanceCards balance={balance} />
+          <BalanceCards balance={balance} year={selectedYear} />
           <BankHolidayBreakdown items={bankHolidayItems} year={selectedYear} />
         </div>
 
