@@ -27,6 +27,7 @@ const createSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   isManager: z.boolean().default(false),
   allowanceAnnualHours: z.number().nonnegative().default(200),
+  startDate: z.string().optional(),
 });
 
 export async function POST(req: Request) {
@@ -50,6 +51,7 @@ export async function POST(req: Request) {
       passwordHash,
       isManager: parsed.data.isManager,
       allowanceAnnualHours: parsed.data.allowanceAnnualHours,
+      startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : undefined,
     },
     select: { id: true, name: true, email: true, isManager: true },
   });

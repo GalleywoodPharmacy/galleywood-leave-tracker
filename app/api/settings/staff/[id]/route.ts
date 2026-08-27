@@ -22,6 +22,9 @@ const updateSchema = z.object({
   isManager: z.boolean().optional(),
   allowanceAnnualHours: z.number().nonnegative().optional(),
   newPassword: z.string().min(8, "Password must be at least 8 characters").optional(),
+  // A date string ("YYYY-MM-DD") sets it; an empty string clears it; omitting
+  // the key entirely leaves whatever's already saved untouched.
+  startDate: z.string().optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -41,7 +44,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     }
   }
 
-  const { email, newPassword, ...rest } = parsed.data;
+  const { email, newPassword, startDate, ...rest } = parsed.data;
 
   const updateData: {
     name?: string;
@@ -49,6 +52,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     allowanceAnnualHours?: number;
     email?: string;
     passwordHash?: string;
+    startDate?: Date | null;
   } = { ...rest };
 
   if (email) {
@@ -62,6 +66,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   if (newPassword) {
     updateData.passwordHash = await hashPassword(newPassword);
+  }
+
+  if (startDate !== undefined) {
+    updateData.startDate = startDate === "" ? null : new Date(startDate);
   }
 
   const user = await prisma.user.update({

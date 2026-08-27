@@ -5,7 +5,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 enum LeaveStatus {
@@ -24,7 +23,16 @@ model User {
 
   isManager Boolean @default(false)
 
+  // Annual leave allowance in hours — the only leave type this app tracks.
   allowanceAnnualHours Float @default(200)
+
+  // When this person started (or will start). If set, their entitlement for
+  // that calendar year is pro-rated based on days remaining in the year from
+  // this date, and only bank holidays on/after it count against them. Left
+  // null for staff whose first year predates this feature — they get a full
+  // year's entitlement as before. From their second year onward, entitlement
+  // is automatically full regardless of this field.
+  startDate DateTime? @db.Date
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

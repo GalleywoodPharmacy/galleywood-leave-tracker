@@ -10,8 +10,17 @@ export type StaffMember = {
   name: string;
   email: string;
   isManager: boolean;
+  startDate: string | null;
   allowances: StaffAllowance[];
 };
+
+function formatDate(iso: string) {
+  return new Date(iso + "T00:00:00.000Z").toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 function StaffRow({ member, years, zebra }: { member: StaffMember; years: number[]; zebra: boolean }) {
   const router = useRouter();
@@ -21,6 +30,7 @@ function StaffRow({ member, years, zebra }: { member: StaffMember; years: number
   const [isManager, setIsManager] = useState(member.isManager);
   const [email, setEmail] = useState(member.email);
   const [newPassword, setNewPassword] = useState("");
+  const [startDate, setStartDate] = useState(member.startDate ?? "");
 
   async function save() {
     setError(null);
@@ -31,6 +41,7 @@ function StaffRow({ member, years, zebra }: { member: StaffMember; years: number
       body: JSON.stringify({
         isManager,
         email,
+        startDate,
         ...(newPassword.trim() ? { newPassword: newPassword.trim() } : {}),
       }),
     });
@@ -83,6 +94,15 @@ function StaffRow({ member, years, zebra }: { member: StaffMember; years: number
                 className="w-full rounded-lg border border-line px-2 py-1.5 text-sm font-mono"
               />
             </div>
+            <div>
+              <label className="block text-xs text-ink-soft mb-1">Start date (for pro-rating their first year)</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full rounded-lg border border-line px-2 py-1.5 text-sm font-mono"
+              />
+            </div>
             <div className="flex items-end">
               <label className="flex items-center gap-2 text-sm text-ink">
                 <input type="checkbox" checked={isManager} onChange={(e) => setIsManager(e.target.checked)} />
@@ -106,6 +126,7 @@ function StaffRow({ member, years, zebra }: { member: StaffMember; years: number
                 setEditing(false);
                 setNewPassword("");
                 setEmail(member.email);
+                setStartDate(member.startDate ?? "");
               }}
               className="rounded-lg border border-line text-sm px-4 py-1.5 hover:bg-card"
             >
@@ -122,6 +143,7 @@ function StaffRow({ member, years, zebra }: { member: StaffMember; years: number
       <td className="px-5 py-3 border-t border-line">
         <div className="font-medium">{member.name}</div>
         <div className="text-xs text-ink-soft">{member.email}</div>
+        {member.startDate && <div className="text-[11px] text-ink-soft">Started {formatDate(member.startDate)}</div>}
       </td>
       {member.allowances.map((a) => (
         <td key={a.year} className="px-5 py-3 border-t border-line font-mono">
@@ -147,6 +169,7 @@ function AddStaffForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isManager, setIsManager] = useState(false);
+  const [startDate, setStartDate] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -157,7 +180,7 @@ function AddStaffForm() {
     const res = await fetch("/api/settings/staff", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password, isManager }),
+      body: JSON.stringify({ name, email, password, isManager, startDate: startDate || undefined }),
     });
     setSubmitting(false);
     const data = await res.json().catch(() => ({}));
@@ -169,6 +192,7 @@ function AddStaffForm() {
     setEmail("");
     setPassword("");
     setIsManager(false);
+    setStartDate("");
     router.refresh();
   }
 
@@ -194,6 +218,15 @@ function AddStaffForm() {
           type="text"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          className="rounded-lg border border-line px-3 py-2 text-sm font-mono"
+        />
+      </div>
+      <div>
+        <label className="block text-xs text-ink-soft mb-1">Start date (optional — pro-rates their first year automatically)</label>
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
           className="rounded-lg border border-line px-3 py-2 text-sm font-mono"
         />
       </div>
@@ -239,8 +272,9 @@ export default function StaffTable({ staff, years }: { staff: StaffMember[]; yea
         </table>
         <p className="text-xs text-ink-soft px-5 py-3 border-t border-line">
           Annual leave for each year is calculated automatically from that person's rota (Staff rotas below) and
-          that year's bank holidays — set their rota and their allowance keeps itself up to date. Click Edit to
-          change someone's email, reset their password, or change their role.
+          that year's bank holidays — set their rota and their allowance keeps itself up to date. If someone joins
+          partway through a year, set their Start date (via Edit, or when adding them) and that year's figure is
+          pro-rated automatically; every year after is a full entitlement.
         </p>
       </div>
       <AddStaffForm />
