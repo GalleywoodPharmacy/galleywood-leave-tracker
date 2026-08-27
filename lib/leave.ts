@@ -1,5 +1,12 @@
 import { prisma } from "./prisma";
-import { calculateLeaveHoursForRota, calculateStatutoryAnnualHours, bankHolidayHoursForRota, type WeeklyRota } from "./business-rules";
+import {
+  calculateLeaveHoursForRota,
+  calculateStatutoryAnnualHours,
+  bankHolidayHoursForRota,
+  bankHolidayBreakdownForRota,
+  type WeeklyRota,
+  type BankHolidayBreakdownItem,
+} from "./business-rules";
 
 export async function loadExtraClosedDates(): Promise<Map<string, string>> {
   const rows = await prisma.extraClosedDate.findMany();
@@ -34,6 +41,11 @@ export async function computeHoursForRangeForUser(userId: string, startDate: Dat
 export async function computeStatutoryAnnualHoursForUser(userId: string, year: number): Promise<number> {
   const [rota, extraClosedDates] = await Promise.all([getRotaForUser(userId), loadExtraClosedDates()]);
   return calculateStatutoryAnnualHours(rota, year, extraClosedDates);
+}
+
+export async function getBankHolidayBreakdownForUser(userId: string, year: number): Promise<BankHolidayBreakdownItem[]> {
+  const [rota, extraClosedDates] = await Promise.all([getRotaForUser(userId), loadExtraClosedDates()]);
+  return bankHolidayBreakdownForRota(rota, year, extraClosedDates);
 }
 
 export type LeaveBalance = {

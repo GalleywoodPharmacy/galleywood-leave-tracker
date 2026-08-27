@@ -180,27 +180,41 @@ export function calculateLeaveHoursForRota(
   return total;
 }
 
-export function bankHolidayHoursForRota(rota: WeeklyRota, year: number, extraClosedDates: Map<string, string>): number {
+export type BankHolidayBreakdownItem = { dateKey: string; label: string; hours: number };
+
+export function bankHolidayBreakdownForRota(
+  rota: WeeklyRota,
+  year: number,
+  extraClosedDates: Map<string, string>
+): BankHolidayBreakdownItem[] {
   const byWeekday = [rota.sun, rota.mon, rota.tue, rota.wed, rota.thu, rota.fri, rota.sat];
   const countedDates = new Set<string>();
-  let closureHoursOnWorkingDays = 0;
+  const items: BankHolidayBreakdownItem[] = [];
 
   const bankHolidays = englandBankHolidays(year);
-  for (const dateKey of bankHolidays.keys()) {
+  for (const [dateKey, label] of bankHolidays.entries()) {
     countedDates.add(dateKey);
     const weekday = new Date(dateKey + "T00:00:00.000Z").getUTCDay();
-    closureHoursOnWorkingDays += byWeekday[weekday];
+    const hours = byWeekday[weekday];
+    if (hours > 0) items.push({ dateKey, label, hours: Math.round(hours * 10) / 10 });
   }
 
-  for (const dateKey of extraClosedDates.keys()) {
+  for (const [dateKey, label] of extraClosedDates.entries()) {
     if (!dateKey.startsWith(String(year))) continue;
     if (countedDates.has(dateKey)) continue;
     countedDates.add(dateKey);
     const weekday = new Date(dateKey + "T00:00:00.000Z").getUTCDay();
-    closureHoursOnWorkingDays += byWeekday[weekday];
+    const hours = byWeekday[weekday];
+    if (hours > 0) items.push({ dateKey, label, hours: Math.round(hours * 10) / 10 });
   }
 
-  return Math.round(closureHoursOnWorkingDays * 10) / 10;
+  items.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+  return items;
+}
+
+export function bankHolidayHoursForRota(rota: WeeklyRota, year: number, extraClosedDates: Map<string, string>): number {
+  const total = bankHolidayBreakdownForRota(rota, year, extraClosedDates).reduce((sum, item) => sum + item.hours, 0);
+  return Math.round(total * 10) / 10;
 }
 
 export function calculateStatutoryAnnualHours(
