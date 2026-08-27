@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { computeHoursForRange, getBalances } from "@/lib/leave";
+import { computeHoursForRangeForUser, getBalances } from "@/lib/leave";
 import { sendLeaveSubmittedEmail } from "@/lib/email";
 
 export async function GET() {
@@ -21,9 +21,8 @@ export async function GET() {
 const createSchema = z
   .object({
     type: z.enum(["annual", "sick", "other"]),
-    startDate: z.string(), // "YYYY-MM-DD"
+    startDate: z.string(),
     endDate: z.string(),
-    // Optional override for partial days; if omitted, hours are auto-computed.
     hours: z.number().positive().optional(),
     notes: z.string().max(2000).optional(),
   })
@@ -46,7 +45,7 @@ export async function POST(req: Request) {
   const start = new Date(startDate);
   const end = new Date(endDate);
 
-  const autoHours = await computeHoursForRange(start, end);
+  const autoHours = await computeHoursForRangeForUser(session.user.id, start, end);
   const hours = parsed.data.hours ?? autoHours;
 
   if (hours <= 0) {
@@ -56,7 +55,6 @@ export async function POST(req: Request) {
     );
   }
 
-  // Server-side balance check — don't trust the client to have done this math.
   const balances = await getBalances(session.user.id);
   const balance = balances.find((b) => b.type === type)!;
   if (hours > balance.remainingHours) {

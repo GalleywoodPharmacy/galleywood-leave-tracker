@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
-import { computeHoursForRange } from "@/lib/leave";
+import { computeHoursForRangeForUser } from "@/lib/leave";
 
 const schema = z.object({
   startDate: z.string(),
@@ -26,6 +26,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ hours: 0 });
   }
 
-  const hours = await computeHoursForRange(start, end);
+  const hours = await computeHoursForRangeForUser(session.user.id, start, end);
   return NextResponse.json({ hours });
 }

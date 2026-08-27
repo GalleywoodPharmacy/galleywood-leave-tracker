@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireManager } from "@/lib/require-manager";
 import { prisma } from "@/lib/prisma";
-import { getBalances, computeHoursForRange } from "@/lib/leave";
+import { getBalances, computeHoursForRangeForUser } from "@/lib/leave";
 import { sendLeaveDecisionEmail, sendLeaveCancelledByManagerEmail, sendLeaveAmendedEmail } from "@/lib/email";
 
 const decideSchema = z.object({ action: z.literal("decide"), decision: z.enum(["approved", "denied"]) });
@@ -29,7 +29,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   const body = await req.json().catch(() => ({}));
 
-  // --- Approve / deny ---
   const decide = decideSchema.safeParse(body);
   if (decide.success) {
     if (existing.status !== "pending") {
@@ -50,7 +49,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ request: updated });
   }
 
-  // --- Cancel (manager can cancel any pending/approved request) ---
   const cancel = cancelSchema.safeParse(body);
   if (cancel.success) {
     if (existing.status !== "pending" && existing.status !== "approved") {
@@ -67,7 +65,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ request: updated });
   }
 
-  // --- Edit / amend (dates, hours, type, notes — status untouched) ---
   const edit = editSchema.safeParse(body);
   if (edit.success) {
     const type = edit.data.type ?? existing.type;
@@ -80,10 +77,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     const hours =
       edit.data.hours ??
-      (edit.data.startDate || edit.data.endDate ? await computeHoursForRange(startDate, endDate) : existing.hours);
+      (edit.data.startDate || edit.data.endDate ? await computeHoursForRangeForUser(existing.userId, startDate, endDate) : existing.hours);
 
-    // Re-check balance excluding this request's own current hours (spec
-    // section 4) — only meaningful if it's still counted (pending/approved).
     if (existing.status === "pending" || existing.status === "approved") {
       const balances = await getBalances(existing.userId, existing.id);
       const balance = balances.find((b) => b.type === type)!;
