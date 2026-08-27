@@ -3,37 +3,24 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+export type StaffAllowance = { year: number; hours: number };
+
 export type StaffMember = {
   id: string;
   name: string;
   email: string;
   isManager: boolean;
-  allowanceAnnualHours: number;
+  allowances: StaffAllowance[];
 };
 
-function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
+function StaffRow({ member, years, zebra }: { member: StaffMember; years: number[]; zebra: boolean }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [calculating, setCalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [annual, setAnnual] = useState(String(member.allowanceAnnualHours));
   const [isManager, setIsManager] = useState(member.isManager);
   const [email, setEmail] = useState(member.email);
   const [newPassword, setNewPassword] = useState("");
-
-  async function calculateAnnual() {
-    setError(null);
-    setCalculating(true);
-    const res = await fetch(`/api/settings/staff/${member.id}`);
-    setCalculating(false);
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(data.error ?? "Couldn't calculate.");
-      return;
-    }
-    setAnnual(String(data.suggestedAnnualHours));
-  }
 
   async function save() {
     setError(null);
@@ -42,7 +29,6 @@ function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        allowanceAnnualHours: parseFloat(annual),
         isManager,
         email,
         ...(newPassword.trim() ? { newPassword: newPassword.trim() } : {}),
@@ -76,7 +62,7 @@ function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
   if (editing) {
     return (
       <tr className={zebra ? "bg-card/40" : ""}>
-        <td colSpan={4} className="px-5 py-4 border-t border-line">
+        <td colSpan={years.length + 3} className="px-5 py-4 border-t border-line">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-ink-soft mb-1">Email</label>
@@ -96,22 +82,6 @@ function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
                 placeholder="••••••••"
                 className="w-full rounded-lg border border-line px-2 py-1.5 text-sm font-mono"
               />
-            </div>
-            <div>
-              <label className="block text-xs text-ink-soft mb-1">Annual allowance (hours)</label>
-              <input
-                value={annual}
-                onChange={(e) => setAnnual(e.target.value)}
-                className="w-28 rounded-lg border border-line px-2 py-1.5 text-sm font-mono"
-              />
-              <button
-                type="button"
-                disabled={calculating}
-                onClick={calculateAnnual}
-                className="block text-[11px] text-coverage hover:underline mt-1 disabled:opacity-60"
-              >
-                {calculating ? "Calculating…" : "Calculate from rota"}
-              </button>
             </div>
             <div className="flex items-end">
               <label className="flex items-center gap-2 text-sm text-ink">
@@ -153,7 +123,11 @@ function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
         <div className="font-medium">{member.name}</div>
         <div className="text-xs text-ink-soft">{member.email}</div>
       </td>
-      <td className="px-5 py-3 border-t border-line font-mono">{member.allowanceAnnualHours}h</td>
+      {member.allowances.map((a) => (
+        <td key={a.year} className="px-5 py-3 border-t border-line font-mono">
+          {a.hours}h
+        </td>
+      ))}
       <td className="px-5 py-3 border-t border-line text-xs">{member.isManager ? "Manager" : "Staff"}</td>
       <td className="px-5 py-3 border-t border-line text-right space-x-3 text-xs">
         <button onClick={() => setEditing(true)} className="text-coverage hover:underline">
@@ -240,7 +214,7 @@ function AddStaffForm() {
   );
 }
 
-export default function StaffTable({ staff }: { staff: StaffMember[] }) {
+export default function StaffTable({ staff, years }: { staff: StaffMember[]; years: number[] }) {
   return (
     <div>
       <div className="bg-white border border-line rounded-xl overflow-x-auto">
@@ -248,20 +222,25 @@ export default function StaffTable({ staff }: { staff: StaffMember[] }) {
           <thead>
             <tr className="text-left text-ink-soft">
               <th className="px-5 py-3 font-medium">Staff</th>
-              <th className="px-5 py-3 font-medium">Annual</th>
+              {years.map((y) => (
+                <th key={y} className="px-5 py-3 font-medium font-mono">
+                  {y}
+                </th>
+              ))}
               <th className="px-5 py-3 font-medium">Role</th>
               <th className="px-5 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody>
             {staff.map((m, i) => (
-              <StaffRow key={m.id} member={m} zebra={i % 2 === 1} />
+              <StaffRow key={m.id} member={m} years={years} zebra={i % 2 === 1} />
             ))}
           </tbody>
         </table>
         <p className="text-xs text-ink-soft px-5 py-3 border-t border-line">
-          Click Edit to change someone's email, reset their password, adjust their annual allowance, or change their role.
-          Leave the password box blank to keep their current password unchanged.
+          Annual leave for each year is calculated automatically from that person's rota (Staff rotas below) and
+          that year's bank holidays — set their rota and their allowance keeps itself up to date. Click Edit to
+          change someone's email, reset their password, or change their role.
         </p>
       </div>
       <AddStaffForm />

@@ -52,7 +52,7 @@ function RotaRow({ item, zebra }: { item: StaffRotaItem; zebra: boolean }) {
     <tr className={zebra ? "bg-card/40" : ""}>
       <td className="px-5 py-3 border-t border-line">
         <div className="font-medium">{item.name}</div>
-        {!item.isCustom && <div className="text-[11px] text-ink-soft">using pharmacy default</div>}
+        {!item.isCustom && <div className="text-[11px] text-declined">no rota set — treated as 0 hours</div>}
       </td>
       {DAYS.map((d) => (
         <td key={d.key} className="px-2 py-3 border-t border-line">

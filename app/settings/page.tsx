@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getAllStaffRotas } from "@/lib/leave";
+import { getAllStaffRotas, getAllStaffAnnualAllowances } from "@/lib/leave";
 import AppNav from "@/components/app-nav";
 import StaffTable from "@/components/settings/staff-table";
 import ClosedDatesManager from "@/components/settings/closed-dates-manager";
@@ -13,17 +13,11 @@ export default async function SettingsPage() {
   if (!session) redirect("/login");
   if (!session.user.isManager) redirect("/dashboard");
 
+  const currentYear = new Date().getUTCFullYear();
+  const years = [currentYear, currentYear + 1, currentYear + 2];
+
   const [staff, closedDates, staffRotas] = await Promise.all([
-    prisma.user.findMany({
-      orderBy: { name: "asc" },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        isManager: true,
-        allowanceAnnualHours: true,
-      },
-    }),
+    getAllStaffAnnualAllowances(years),
     prisma.extraClosedDate.findMany({ orderBy: { date: "asc" } }),
     getAllStaffRotas(),
   ]);
@@ -37,7 +31,7 @@ export default async function SettingsPage() {
 
         <section>
           <h2 className="text-header text-lg mb-3">Staff &amp; allowances</h2>
-          <StaffTable staff={staff} />
+          <StaffTable staff={staff} years={years} />
         </section>
 
         <section>

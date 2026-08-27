@@ -17,7 +17,7 @@ export async function loadExtraClosedDates(): Promise<Map<string, string>> {
   return map;
 }
 
-export const DEFAULT_ROTA: WeeklyRota = { sun: 0, mon: 8, tue: 8, wed: 8, thu: 8, fri: 8, sat: 4 };
+export const DEFAULT_ROTA: WeeklyRota = { sun: 0, mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0 };
 
 export async function getRotaForUser(userId: string): Promise<WeeklyRota> {
   const rota = await prisma.staffRota.findUnique({ where: { userId } });
@@ -120,6 +120,44 @@ export async function getAllStaffBalances(year: number) {
     }))
   );
   return results;
+}
+
+/**
+ * All staff with their automatically-calculated annual allowance for each
+ * of the given years (current year + however many ahead) — for the
+ * Staff & allowances table in Settings. Fully live from each person's rota;
+ * there's no manually-saved figure to keep in sync any more.
+ */
+export async function getAllStaffAnnualAllowances(years: number[]) {
+  const [users, extraClosedDates] = await Promise.all([
+    prisma.user.findMany({ orderBy: { name: "asc" }, include: { rota: true } }),
+    loadExtraClosedDates(),
+  ]);
+
+  return users.map((u) => {
+    const rota: WeeklyRota = u.rota
+      ? {
+          sun: u.rota.sundayHours,
+          mon: u.rota.mondayHours,
+          tue: u.rota.tuesdayHours,
+          wed: u.rota.wednesdayHours,
+          thu: u.rota.thursdayHours,
+          fri: u.rota.fridayHours,
+          sat: u.rota.saturdayHours,
+        }
+      : DEFAULT_ROTA;
+
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      isManager: u.isManager,
+      allowances: years.map((year) => ({
+        year,
+        hours: calculateStatutoryAnnualHours(rota, year, extraClosedDates),
+      })),
+    };
+  });
 }
 
 /** All staff with their rota (or the default, if they don't have one set yet) — for Settings. */
