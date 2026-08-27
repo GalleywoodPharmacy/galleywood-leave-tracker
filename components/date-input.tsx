@@ -67,7 +67,7 @@ export default function DateInput({
   }
 
   return (
-    <div className={`flex gap-1.5 ${className}`}>
+    <div className={`flex flex-wrap items-center gap-1 ${className}`}>
       <input
         type="number"
         inputMode="numeric"
@@ -76,13 +76,13 @@ export default function DateInput({
         max={31}
         value={day}
         onChange={(e) => update(e.target.value.slice(0, 2), month, year)}
-        className="w-14 rounded-lg border border-line px-2 py-1.5 text-sm font-mono text-center focus:outline-none focus:ring-2 focus:ring-accent"
+        className="w-12 rounded-lg border border-line bg-white px-1.5 py-1.5 text-sm font-mono text-center focus:outline-none focus:ring-2 focus:ring-accent"
         required={required}
       />
       <select
         value={month}
         onChange={(e) => update(day, e.target.value, year)}
-        className="rounded-lg border border-line px-1.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+        className="w-[4.5rem] rounded-lg border border-line bg-white px-1 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
         required={required}
       >
         <option value="">Month</option>
@@ -98,7 +98,7 @@ export default function DateInput({
         placeholder="YYYY"
         value={year}
         onChange={(e) => update(day, month, e.target.value.slice(0, 4))}
-        className="w-20 rounded-lg border border-line px-2 py-1.5 text-sm font-mono text-center focus:outline-none focus:ring-2 focus:ring-accent"
+        className="w-16 rounded-lg border border-line bg-white px-1.5 py-1.5 text-sm font-mono text-center focus:outline-none focus:ring-2 focus:ring-accent"
         required={required}
       />
     </div>
