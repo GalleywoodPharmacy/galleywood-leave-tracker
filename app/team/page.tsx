@@ -1,10 +1,10 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getAllStaffBalances } from "@/lib/leave";
 import AppNav from "@/components/app-nav";
+import YearSelect from "@/components/year-select";
 import PendingQueue from "@/components/team/pending-queue";
 import TeamBalanceTable from "@/components/team/team-balance-table";
 import ActivityLog from "@/components/team/activity-log";
@@ -42,9 +42,16 @@ export default async function TeamPage({ searchParams }: { searchParams: { year?
   if (!session.user.isManager) redirect("/dashboard");
 
   const now = new Date();
-  const selectedYear = searchParams.year ? parseInt(searchParams.year, 10) : now.getUTCFullYear();
+  const currentYear = now.getUTCFullYear();
+  const selectedYear = searchParams.year ? parseInt(searchParams.year, 10) : currentYear;
 
-  const [pending, recent, staffBalances] = await Promise.all([
+  const yearOptions = Array.from({ length: 6 }, (_, i) => currentYear - 1 + i);
+  if (!yearOptions.includes(selectedYear)) {
+    yearOptions.push(selectedYear);
+    yearOptions.sort((a, b) => a - b);
+  }
+
+  const [pending, allRequests, staffBalances] = await Promise.all([
     prisma.leaveRequest.findMany({
       where: { status: "pending" },
       include: { user: { select: { name: true, email: true } }, decidedBy: { select: { name: true } } },
@@ -53,7 +60,6 @@ export default async function TeamPage({ searchParams }: { searchParams: { year?
     prisma.leaveRequest.findMany({
       include: { user: { select: { name: true, email: true } }, decidedBy: { select: { name: true } } },
       orderBy: { submittedAt: "desc" },
-      take: 25,
     }),
     getAllStaffBalances(selectedYear),
   ]);
@@ -73,28 +79,19 @@ export default async function TeamPage({ searchParams }: { searchParams: { year?
         <section>
           <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
             <h2 className="text-header text-lg">Team balances</h2>
-            <div className="flex items-center gap-2 text-sm">
-              <Link
-                href={`/team?year=${selectedYear - 1}`}
-                className="rounded-lg border border-line px-3 py-1.5 hover:bg-card transition-colors"
-              >
-                ← {selectedYear - 1}
-              </Link>
-              <span className="px-3 py-1.5 font-medium text-header font-mono">{selectedYear}</span>
-              <Link
-                href={`/team?year=${selectedYear + 1}`}
-                className="rounded-lg border border-line px-3 py-1.5 hover:bg-card transition-colors"
-              >
-                {selectedYear + 1} →
-              </Link>
+            <div className="flex items-center gap-2">
+              <label htmlFor="team-year" className="text-sm text-ink-soft">
+                Viewing
+              </label>
+              <YearSelect years={yearOptions} selectedYear={selectedYear} basePath="/team" />
             </div>
           </div>
           <TeamBalanceTable staffBalances={staffBalances} />
         </section>
 
         <section>
-          <h2 className="text-header text-lg mb-3">Recent activity</h2>
-          <ActivityLog requests={recent.map(serialize)} />
+          <h2 className="text-header text-lg mb-3">History</h2>
+          <ActivityLog requests={allRequests.map(serialize)} />
         </section>
       </main>
     </div>

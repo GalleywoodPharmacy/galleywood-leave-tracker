@@ -70,96 +70,102 @@ function StaffRow({ member, years, zebra }: { member: StaffMember; years: number
     router.refresh();
   }
 
-  if (editing) {
-    return (
+  return (
+    <>
       <tr className={zebra ? "bg-card/40" : ""}>
-        <td colSpan={years.length + 3} className="px-5 py-4 border-t border-line">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-ink-soft mb-1">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-line px-2 py-1.5 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-ink-soft mb-1">New password (leave blank to keep current)</label>
-              <input
-                type="text"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full rounded-lg border border-line px-2 py-1.5 text-sm font-mono"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-ink-soft mb-1">Start date (for pro-rating their first year)</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full rounded-lg border border-line px-2 py-1.5 text-sm font-mono"
-              />
-            </div>
-            <div className="flex items-end">
-              <label className="flex items-center gap-2 text-sm text-ink">
-                <input type="checkbox" checked={isManager} onChange={(e) => setIsManager(e.target.checked)} />
-                Manager
-              </label>
-            </div>
-          </div>
-
-          {error && <p className="text-sm text-declined mt-3">{error}</p>}
-
-          <div className="flex gap-3 mt-3">
-            <button
-              disabled={busy}
-              onClick={save}
-              className="rounded-lg bg-primary text-white text-sm px-4 py-1.5 hover:bg-header disabled:opacity-60"
-            >
-              Save
-            </button>
-            <button
-              onClick={() => {
-                setEditing(false);
-                setNewPassword("");
-                setEmail(member.email);
-                setStartDate(member.startDate ?? "");
-              }}
-              className="rounded-lg border border-line text-sm px-4 py-1.5 hover:bg-card"
-            >
-              Cancel
-            </button>
-          </div>
+        <td className="px-5 py-3 border-t border-line">
+          <div className="font-medium">{member.name}</div>
+          <div className="text-xs text-ink-soft">{member.email}</div>
+          {member.startDate && <div className="text-[11px] text-ink-soft">Started {formatDate(member.startDate)}</div>}
+        </td>
+        {member.allowances.map((a) => (
+          <td key={a.year} className="px-5 py-3 border-t border-line font-mono">
+            {a.hours}h
+          </td>
+        ))}
+        <td className="px-5 py-3 border-t border-line text-xs">{member.isManager ? "Manager" : "Staff"}</td>
+        <td className="px-5 py-3 border-t border-line text-right space-x-3 text-xs">
+          {editing ? (
+            <span className="text-ink-soft">Editing below ↓</span>
+          ) : (
+            <>
+              <button onClick={() => setEditing(true)} className="text-coverage hover:underline">
+                Edit
+              </button>
+              <button disabled={busy} onClick={remove} className="text-declined hover:underline disabled:opacity-60">
+                Remove
+              </button>
+            </>
+          )}
         </td>
       </tr>
-    );
-  }
 
-  return (
-    <tr className={zebra ? "bg-card/40" : ""}>
-      <td className="px-5 py-3 border-t border-line">
-        <div className="font-medium">{member.name}</div>
-        <div className="text-xs text-ink-soft">{member.email}</div>
-        {member.startDate && <div className="text-[11px] text-ink-soft">Started {formatDate(member.startDate)}</div>}
-      </td>
-      {member.allowances.map((a) => (
-        <td key={a.year} className="px-5 py-3 border-t border-line font-mono">
-          {a.hours}h
-        </td>
-      ))}
-      <td className="px-5 py-3 border-t border-line text-xs">{member.isManager ? "Manager" : "Staff"}</td>
-      <td className="px-5 py-3 border-t border-line text-right space-x-3 text-xs">
-        <button onClick={() => setEditing(true)} className="text-coverage hover:underline">
-          Edit
-        </button>
-        <button disabled={busy} onClick={remove} className="text-declined hover:underline disabled:opacity-60">
-          Remove
-        </button>
-      </td>
-    </tr>
+      {editing && (
+        <tr className={zebra ? "bg-card/40" : ""}>
+          <td colSpan={years.length + 3} className="px-5 py-4 border-t border-line bg-page/60">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-ink-soft mb-1">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-lg border border-line px-2 py-1.5 text-sm bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-ink-soft mb-1">New password (leave blank to keep current)</label>
+                <input
+                  type="text"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-lg border border-line px-2 py-1.5 text-sm font-mono bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-ink-soft mb-1">Start date (for pro-rating their first year)</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full rounded-lg border border-line px-2 py-1.5 text-sm font-mono bg-white"
+                />
+              </div>
+              <div className="flex items-end">
+                <label className="flex items-center gap-2 text-sm text-ink">
+                  <input type="checkbox" checked={isManager} onChange={(e) => setIsManager(e.target.checked)} />
+                  Manager
+                </label>
+              </div>
+            </div>
+
+            {error && <p className="text-sm text-declined mt-3">{error}</p>}
+
+            <div className="flex gap-3 mt-3">
+              <button
+                disabled={busy}
+                onClick={save}
+                className="rounded-lg bg-primary text-white text-sm px-4 py-1.5 hover:bg-header disabled:opacity-60"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setEditing(false);
+                  setNewPassword("");
+                  setEmail(member.email);
+                  setStartDate(member.startDate ?? "");
+                }}
+                className="rounded-lg border border-line text-sm px-4 py-1.5 hover:bg-card"
+              >
+                Cancel
+              </button>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
