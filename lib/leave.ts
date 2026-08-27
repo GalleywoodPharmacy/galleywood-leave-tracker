@@ -1,8 +1,7 @@
 import { prisma } from "./prisma";
-import { calculateLeaveHours } from "./business-rules";
+import { calculateLeaveHoursForRota, calculateStatutoryAnnualHours, type WeeklyRota } from "./business-rules";
 import type { LeaveType } from "@prisma/client";
 
-/** Load all extra closures as a Map keyed "YYYY-MM-DD" -> label, for the business-rules functions. */
 export async function loadExtraClosedDates(): Promise<Map<string, string>> {
   const rows = await prisma.extraClosedDate.findMany();
   const map = new Map<string, string>();
@@ -12,10 +11,30 @@ export async function loadExtraClosedDates(): Promise<Map<string, string>> {
   return map;
 }
 
-/** Auto-computed leave hours for a date range, per the opening-hours + closed-day rules. */
-export async function computeHoursForRange(startDate: Date, endDate: Date): Promise<number> {
-  const extraClosedDates = await loadExtraClosedDates();
-  return calculateLeaveHours(startDate, endDate, extraClosedDates);
+export const DEFAULT_ROTA: WeeklyRota = { sun: 0, mon: 7.5, tue: 7.5, wed: 7.5, thu: 7.5, fri: 7.5, sat: 4 };
+
+export async function getRotaForUser(userId: string): Promise<WeeklyRota> {
+  const rota = await prisma.staffRota.findUnique({ where: { userId } });
+  if (!rota) return DEFAULT_ROTA;
+  return {
+    sun: rota.sundayHours,
+    mon: rota.mondayHours,
+    tue: rota.tuesdayHours,
+    wed: rota.wednesdayHours,
+    thu: rota.thursdayHours,
+    fri: rota.fridayHours,
+    sat: rota.saturdayHours,
+  };
+}
+
+export async function computeHoursForRangeForUser(userId: string, startDate: Date, endDate: Date): Promise<number> {
+  const [extraClosedDates, rota] = await Promise.all([loadExtraClosedDates(), getRotaForUser(userId)]);
+  return calculateLeaveHoursForRota(startDate, endDate, extraClosedDates, rota);
+}
+
+export async function computeStatutoryAnnualHoursForUser(userId: string, year: number): Promise<number> {
+  const [rota, extraClosedDates] = await Promise.all([getRotaForUser(userId), loadExtraClosedDates()]);
+  return calculateStatutoryAnnualHours(rota, year, extraClosedDates);
 }
 
 export type LeaveBalance = {
@@ -24,24 +43,12 @@ export type LeaveBalance = {
   approvedHours: number;
   pendingHours: number;
   remainingHours: number;
-  // Rough days-equivalent using the standard Mon-Fri day length (7.5h), for
-  // display only ("≈ days equivalent" per spec) — not used in any hours math.
   remainingDaysApprox: number;
 };
 
 const STANDARD_DAY_HOURS = 7.5;
 const LEAVE_TYPES: LeaveType[] = ["annual", "sick", "other"];
 
-/**
- * remaining = allowance − sum(approved hours) − sum(pending hours), per type.
- * Cancelled/denied requests are excluded, so withdrawing frees hours
- * immediately (spec section 4).
- *
- * excludeRequestId: when a manager amends an already-approved request's own
- * hours/dates, its *current* (pre-edit) hours must not count against itself,
- * or shrinking a request would false-positive as "over allowance" (spec
- * section 4, "Amending an approved request").
- */
 export async function getBalances(userId: string, excludeRequestId?: string): Promise<LeaveBalance[]> {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
 
@@ -87,7 +94,6 @@ export const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
   other: "Other",
 };
 
-/** All staff, each with their balances — for the Team & Approvals table. */
 export async function getAllStaffBalances() {
   const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
   const results = await Promise.all(
@@ -97,4 +103,24 @@ export async function getAllStaffBalances() {
     }))
   );
   return results;
+}
+
+export async function getAllStaffRotas() {
+  const users = await prisma.user.findMany({ orderBy: { name: "asc" }, include: { rota: true } });
+  return users.map((u) => ({
+    userId: u.id,
+    name: u.name,
+    rota: u.rota
+      ? {
+          sun: u.rota.sundayHours,
+          mon: u.rota.mondayHours,
+          tue: u.rota.tuesdayHours,
+          wed: u.rota.wednesdayHours,
+          thu: u.rota.thursdayHours,
+          fri: u.rota.fridayHours,
+          sat: u.rota.saturdayHours,
+        }
+      : DEFAULT_ROTA,
+    isCustom: !!u.rota,
+  }));
 }

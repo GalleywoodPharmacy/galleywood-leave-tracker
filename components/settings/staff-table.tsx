@@ -17,11 +17,25 @@ function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [calculating, setCalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [annual, setAnnual] = useState(String(member.allowanceAnnualHours));
   const [sick, setSick] = useState(String(member.allowanceSickHours));
   const [other, setOther] = useState(String(member.allowanceOtherHours));
   const [isManager, setIsManager] = useState(member.isManager);
+
+  async function calculateAnnual() {
+    setError(null);
+    setCalculating(true);
+    const res = await fetch(`/api/settings/staff/${member.id}`);
+    setCalculating(false);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(data.error ?? "Couldn't calculate.");
+      return;
+    }
+    setAnnual(String(data.suggestedAnnualHours));
+  }
 
   async function save() {
     setError(null);
@@ -59,7 +73,6 @@ function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
     }
     router.refresh();
   }
-
   return (
     <tr className={zebra ? "bg-card/40" : ""}>
       <td className="px-5 py-3 border-t border-line">
@@ -70,6 +83,14 @@ function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
         <>
           <td className="px-5 py-3 border-t border-line">
             <input value={annual} onChange={(e) => setAnnual(e.target.value)} className="w-16 rounded border border-line px-1.5 py-1 text-xs font-mono" />
+            <button
+              type="button"
+              disabled={calculating}
+              onClick={calculateAnnual}
+              className="block text-[11px] text-coverage hover:underline mt-0.5 disabled:opacity-60"
+            >
+              {calculating ? "Calculating…" : "Calculate from rota"}
+            </button>
           </td>
           <td className="px-5 py-3 border-t border-line">
             <input value={sick} onChange={(e) => setSick(e.target.value)} className="w-16 rounded border border-line px-1.5 py-1 text-xs font-mono" />
@@ -211,6 +232,11 @@ export default function StaffTable({ staff }: { staff: StaffMember[] }) {
             ))}
           </tbody>
         </table>
+        <p className="text-xs text-ink-soft px-5 py-3 border-t border-line">
+          "Calculate from rota" fills in the Annual field using (this person's weekly rota hours × 5.6) minus any
+          bank-holiday hours that fall on a day they work this year — set their rota in Staff rotas below first.
+          It only fills the box; click Save to apply it.
+        </p>
       </div>
       <AddStaffForm />
     </div>

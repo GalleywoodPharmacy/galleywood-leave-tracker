@@ -2,6 +2,18 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireManager } from "@/lib/require-manager";
 import { prisma } from "@/lib/prisma";
+import { computeStatutoryAnnualHoursForUser } from "@/lib/leave";
+
+export async function GET(req: Request, { params }: { params: { id: string } }) {
+  const check = await requireManager();
+  if (check instanceof NextResponse) return check;
+
+  const { searchParams } = new URL(req.url);
+  const year = parseInt(searchParams.get("year") ?? String(new Date().getFullYear()), 10);
+
+  const suggestedAnnualHours = await computeStatutoryAnnualHoursForUser(params.id, year);
+  return NextResponse.json({ suggestedAnnualHours, year });
+}
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -18,7 +30,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const parsed = updateSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: "Invalid update" }, { status: 400 });
 
-  // Don't let the last manager demote themselves (or anyone) to zero managers.
   if (parsed.data.isManager === false) {
     const managerCount = await prisma.user.count({ where: { isManager: true } });
     const target = await prisma.user.findUnique({ where: { id: params.id } });
