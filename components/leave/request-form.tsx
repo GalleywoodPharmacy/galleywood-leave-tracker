@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import DateInput from "@/components/date-input";
 
 export default function RequestForm() {
   const router = useRouter();
@@ -87,24 +88,11 @@ export default function RequestForm() {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-ink mb-1">Start date</label>
-          <input
-            type="date"
-            required
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full rounded-lg border border-line px-3 py-2 text-ink font-mono text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-          />
+          <DateInput required value={startDate} onChange={setStartDate} />
         </div>
         <div>
           <label className="block text-sm font-medium text-ink mb-1">End date</label>
-          <input
-            type="date"
-            required
-            value={endDate}
-            min={startDate || undefined}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full rounded-lg border border-line px-3 py-2 text-ink font-mono text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-          />
+          <DateInput required value={endDate} onChange={setEndDate} />
         </div>
       </div>
 

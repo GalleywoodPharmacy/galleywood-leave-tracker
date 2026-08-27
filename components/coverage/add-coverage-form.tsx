@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import DateInput from "@/components/date-input";
 
 export default function AddCoverageForm({
   isManager,
@@ -46,12 +47,7 @@ export default function AddCoverageForm({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-ink mb-1">Date</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full rounded-lg border border-line px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent"
-          />
+          <DateInput value={date} onChange={setDate} />
         </div>
         {isManager && (
           <div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import DateInput from "@/components/date-input";
 
 export type StaffAllowance = { year: number; hours: number };
 
@@ -125,12 +126,7 @@ function StaffRow({ member, years, zebra }: { member: StaffMember; years: number
               </div>
               <div>
                 <label className="block text-xs text-ink-soft mb-1">Start date (for pro-rating their first year)</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full rounded-lg border border-line px-2 py-1.5 text-sm font-mono bg-white"
-                />
+                <DateInput value={startDate} onChange={setStartDate} />
               </div>
               <div className="flex items-end">
                 <label className="flex items-center gap-2 text-sm text-ink">
@@ -229,12 +225,7 @@ function AddStaffForm() {
       </div>
       <div>
         <label className="block text-xs text-ink-soft mb-1">Start date (optional — pro-rates their first year automatically)</label>
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          className="rounded-lg border border-line px-3 py-2 text-sm font-mono"
-        />
+        <DateInput value={startDate} onChange={setStartDate} />
       </div>
       <label className="flex items-center gap-2 text-sm text-ink">
         <input type="checkbox" checked={isManager} onChange={(e) => setIsManager(e.target.checked)} />

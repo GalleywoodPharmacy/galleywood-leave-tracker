@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import DateInput from "@/components/date-input";
 
 export type TeamRequest = {
   id: string;
@@ -69,21 +70,11 @@ export default function TeamRequestRow({ request, zebra }: { request: TeamReques
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
             <div>
               <label className="block text-xs text-ink-soft mb-1">Start</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full rounded-lg border border-line px-2 py-1.5 text-sm font-mono"
-              />
+              <DateInput value={startDate} onChange={setStartDate} />
             </div>
             <div>
               <label className="block text-xs text-ink-soft mb-1">End</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full rounded-lg border border-line px-2 py-1.5 text-sm font-mono"
-              />
+              <DateInput value={endDate} onChange={setEndDate} />
             </div>
             <div>
               <label className="block text-xs text-ink-soft mb-1">Hours</label>

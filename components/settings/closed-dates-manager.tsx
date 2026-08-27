@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import DateInput from "@/components/date-input";
 
 export type ClosedDateItem = { dateKey: string; label: string };
 
@@ -77,12 +78,7 @@ export default function ClosedDatesManager({ dates }: { dates: ClosedDateItem[] 
       <form onSubmit={handleAdd} className="bg-white border border-line rounded-xl p-5 space-y-3">
         <h3 className="text-sm font-medium text-ink">Add a one-off closure</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="rounded-lg border border-line px-3 py-2 text-sm font-mono"
-          />
+          <DateInput value={date} onChange={setDate} />
           <input
             placeholder="Reason (e.g. Staff training day)"
             value={label}
