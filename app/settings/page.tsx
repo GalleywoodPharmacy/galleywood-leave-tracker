@@ -2,16 +2,18 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getAllStaffRotas } from "@/lib/leave";
 import AppNav from "@/components/app-nav";
 import StaffTable from "@/components/settings/staff-table";
 import ClosedDatesManager from "@/components/settings/closed-dates-manager";
+import RotaManager from "@/components/settings/rota-manager";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
   if (!session.user.isManager) redirect("/dashboard");
 
-  const [staff, closedDates] = await Promise.all([
+  const [staff, closedDates, staffRotas] = await Promise.all([
     prisma.user.findMany({
       orderBy: { name: "asc" },
       select: {
@@ -25,6 +27,7 @@ export default async function SettingsPage() {
       },
     }),
     prisma.extraClosedDate.findMany({ orderBy: { date: "asc" } }),
+    getAllStaffRotas(),
   ]);
 
   return (
@@ -37,6 +40,11 @@ export default async function SettingsPage() {
         <section>
           <h2 className="text-header text-lg mb-3">Staff &amp; allowances</h2>
           <StaffTable staff={staff} />
+        </section>
+
+        <section>
+          <h2 className="text-header text-lg mb-3">Staff rotas</h2>
+          <RotaManager staffRotas={staffRotas} />
         </section>
 
         <section>
