@@ -41,13 +41,15 @@ export default async function DashboardPage() {
       <main className="p-6 max-w-4xl mx-auto space-y-6">
         <h1 className="text-xl text-header">My Leave</h1>
 
-        <div className="flex flex-wrap gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
           <BalanceCards balance={balance} />
           <BankHolidayBreakdown items={bankHolidayItems} year={currentYear} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          <RequestForm />
+          <div id="request-leave" className="scroll-mt-6">
+            <RequestForm />
+          </div>
           <div>
             <h2 className="text-header text-lg mb-3">History</h2>
             <HistoryTable requests={serializedRequests} />
