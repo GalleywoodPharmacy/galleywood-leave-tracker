@@ -1,10 +1,3 @@
-// Galleywood Pharmacy — Staff Leave & Rota
-// Database schema (spec section 3)
-//
-// Postgres via Supabase or Neon. Run:
-//   npx prisma migrate dev --name init
-// to create these tables in your database.
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -32,14 +25,10 @@ model User {
   name   String
   email  String @unique
 
-  // Auth. NULL passwordHash is allowed so a manager can pre-create a staff
-  // record (e.g. via Settings) before that person has ever logged in /
-  // set a password via a magic-link-style invite flow.
   passwordHash String?
 
   isManager Boolean @default(false)
 
-  // Leave allowances, in hours, per spec defaults.
   allowanceAnnualHours Float @default(200)
   allowanceSickHours   Float @default(80)
   allowanceOtherHours  Float @default(40)
@@ -52,6 +41,7 @@ model User {
   coverageAssignments CoverageAssignment[]  @relation("UserCoverage")
   coverageCreated     CoverageAssignment[]  @relation("CoverageCreatedBy")
   loginTokens         LoginToken[]
+  rota                StaffRota?
 
   @@map("users")
 }
@@ -62,13 +52,9 @@ model LeaveRequest {
   user   User      @relation("UserLeaveRequests", fields: [userId], references: [id], onDelete: Cascade)
 
   type  LeaveType
-  // Stored as pure calendar dates (no time component) — the date range is
-  // interpreted using the opening-hours rules in lib/business-rules.ts.
   startDate DateTime @db.Date
   endDate   DateTime @db.Date
 
-  // Auto-computed from the date range by default, but editable for partial
-  // days (spec section 5, "My Leave").
   hours Float
   notes String?
 
@@ -97,7 +83,6 @@ model CoverageAssignment {
 
   createdAt DateTime @default(now())
 
-  // Same person can't be double-booked to cover the same date twice.
   @@unique([date, userId])
   @@index([date])
   @@map("coverage_assignments")
@@ -110,19 +95,34 @@ model ExtraClosedDate {
   @@map("extra_closed_dates")
 }
 
-// Single-use tokens for magic-link login / password-setup invites.
-// A manager creating a staff record (Settings) issues one of these instead
-// of a password; the recipient uses it to set their own password.
 model LoginToken {
   id        String    @id @default(cuid())
   token     String    @unique
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  purpose   String    // "magic-link" | "set-password"
+  purpose   String
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
 
   @@index([token])
   @@map("login_tokens")
+}
+
+model StaffRota {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  sundayHours    Float @default(0)
+  mondayHours    Float @default(7.5)
+  tuesdayHours   Float @default(7.5)
+  wednesdayHours Float @default(7.5)
+  thursdayHours  Float @default(7.5)
+  fridayHours    Float @default(7.5)
+  saturdayHours  Float @default(4)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("staff_rotas")
 }
