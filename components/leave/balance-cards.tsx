@@ -1,6 +1,8 @@
 import type { LeaveBalance } from "@/lib/leave";
 
 export default function BalanceCards({ balance }: { balance: LeaveBalance }) {
+  const grossAllowance = balance.allowanceHours + balance.bankHolidayHours;
+
   return (
     <div className="max-w-xs">
       <div className="bg-white border border-line rounded-xl p-5">
@@ -14,8 +16,14 @@ export default function BalanceCards({ balance }: { balance: LeaveBalance }) {
         <div className="mt-3 pt-3 border-t border-line text-xs text-ink-soft space-y-1 font-mono">
           <div className="flex justify-between">
             <span>Allowance</span>
-            <span>{balance.allowanceHours}h</span>
+            <span>{grossAllowance}h</span>
           </div>
+          {balance.bankHolidayHours > 0 && (
+            <div className="flex justify-between">
+              <span>Bank holidays</span>
+              <span>-{balance.bankHolidayHours}h</span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span>Approved</span>
             <span>-{balance.approvedHours}h</span>

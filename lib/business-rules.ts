@@ -29,6 +29,7 @@ function sameDate(a: Date, b: Date): boolean {
     a.getUTCDate() === b.getUTCDate()
   );
 }
+
 export function easterSunday(year: number): Date {
   const a = year % 19;
   const b = Math.floor(year / 100);
@@ -60,6 +61,7 @@ function nthWeekdayOfMonth(year: number, monthIndex0: number, weekday: number, p
   const offset = (lastWeekday - weekday + 7) % 7;
   return addDays(lastDay, -offset);
 }
+
 export function englandBankHolidays(year: number): Map<string, string> {
   const holidays = new Map<string, string>();
   const key = (d: Date) => d.toISOString().slice(0, 10);
@@ -103,6 +105,7 @@ export function englandBankHolidays(year: number): Map<string, string> {
 
   return holidays;
 }
+
 export function getClosedReason(date: Date, extraClosedDates: Map<string, string>): ClosedReason {
   const d = toUTCDate(date);
   const key = d.toISOString().slice(0, 10);
@@ -141,6 +144,7 @@ export function calculateLeaveHours(startDate: Date, endDate: Date, extraClosedD
   }
   return total;
 }
+
 export type WeeklyRota = {
   sun: number;
   mon: number;
@@ -175,15 +179,9 @@ export function calculateLeaveHoursForRota(
   }
   return total;
 }
-export function calculateStatutoryAnnualHours(
-  rota: WeeklyRota,
-  year: number,
-  extraClosedDates: Map<string, string>
-): number {
-  const weeklyHours = rota.sun + rota.mon + rota.tue + rota.wed + rota.thu + rota.fri + rota.sat;
-  const entitlement = weeklyHours * 5.6;
-  const byWeekday = [rota.sun, rota.mon, rota.tue, rota.wed, rota.thu, rota.fri, rota.sat];
 
+export function bankHolidayHoursForRota(rota: WeeklyRota, year: number, extraClosedDates: Map<string, string>): number {
+  const byWeekday = [rota.sun, rota.mon, rota.tue, rota.wed, rota.thu, rota.fri, rota.sat];
   const countedDates = new Set<string>();
   let closureHoursOnWorkingDays = 0;
 
@@ -202,6 +200,19 @@ export function calculateStatutoryAnnualHours(
     closureHoursOnWorkingDays += byWeekday[weekday];
   }
 
+  return Math.round(closureHoursOnWorkingDays * 10) / 10;
+}
+
+export function calculateStatutoryAnnualHours(
+  rota: WeeklyRota,
+  year: number,
+  extraClosedDates: Map<string, string>
+): number {
+  const weeklyHours = rota.sun + rota.mon + rota.tue + rota.wed + rota.thu + rota.fri + rota.sat;
+  const entitlement = weeklyHours * 5.6;
+  const closureHoursOnWorkingDays = bankHolidayHoursForRota(rota, year, extraClosedDates);
+
   return Math.max(0, Math.round((entitlement - closureHoursOnWorkingDays) * 10) / 10);
 }
+
 export { sameDate };

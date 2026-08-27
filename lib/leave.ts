@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { calculateLeaveHoursForRota, calculateStatutoryAnnualHours, type WeeklyRota } from "./business-rules";
+import { calculateLeaveHoursForRota, calculateStatutoryAnnualHours, bankHolidayHoursForRota, type WeeklyRota } from "./business-rules";
 
 export async function loadExtraClosedDates(): Promise<Map<string, string>> {
   const rows = await prisma.extraClosedDate.findMany();
@@ -38,6 +38,7 @@ export async function computeStatutoryAnnualHoursForUser(userId: string, year: n
 
 export type LeaveBalance = {
   allowanceHours: number;
+  bankHolidayHours: number;
   approvedHours: number;
   pendingHours: number;
   remainingHours: number;
@@ -49,22 +50,28 @@ const STANDARD_DAY_HOURS = 7.5;
 export async function getBalance(userId: string, excludeRequestId?: string): Promise<LeaveBalance> {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
 
-  const requests = await prisma.leaveRequest.findMany({
-    where: {
-      userId,
-      status: { in: ["approved", "pending"] },
-      ...(excludeRequestId ? { id: { not: excludeRequestId } } : {}),
-    },
-    select: { status: true, hours: true },
-  });
+  const [requests, rota, extraClosedDates] = await Promise.all([
+    prisma.leaveRequest.findMany({
+      where: {
+        userId,
+        status: { in: ["approved", "pending"] },
+        ...(excludeRequestId ? { id: { not: excludeRequestId } } : {}),
+      },
+      select: { status: true, hours: true },
+    }),
+    getRotaForUser(userId),
+    loadExtraClosedDates(),
+  ]);
 
   const approvedHours = requests.filter((r) => r.status === "approved").reduce((sum, r) => sum + r.hours, 0);
   const pendingHours = requests.filter((r) => r.status === "pending").reduce((sum, r) => sum + r.hours, 0);
   const allowanceHours = user.allowanceAnnualHours;
+  const bankHolidayHours = bankHolidayHoursForRota(rota, new Date().getFullYear(), extraClosedDates);
   const remainingHours = allowanceHours - approvedHours - pendingHours;
 
   return {
     allowanceHours,
+    bankHolidayHours,
     approvedHours,
     pendingHours,
     remainingHours,
