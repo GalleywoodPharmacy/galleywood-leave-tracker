@@ -2,11 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LEAVE_TYPE_LABELS } from "@/lib/leave";
 
 type LeaveRequestRow = {
   id: string;
-  type: "annual" | "sick" | "other";
   startDate: string;
   endDate: string;
   hours: number;
@@ -68,7 +66,6 @@ export default function HistoryTable({ requests }: { requests: LeaveRequestRow[]
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-ink-soft border-b border-line">
-            <th className="px-5 py-3 font-medium">Type</th>
             <th className="px-5 py-3 font-medium">Dates</th>
             <th className="px-5 py-3 font-medium">Hours</th>
             <th className="px-5 py-3 font-medium">Status</th>
@@ -78,7 +75,6 @@ export default function HistoryTable({ requests }: { requests: LeaveRequestRow[]
         <tbody>
           {requests.map((r, i) => (
             <tr key={r.id} className={i % 2 === 1 ? "bg-card/40" : ""}>
-              <td className="px-5 py-3 border-t border-line">{LEAVE_TYPE_LABELS[r.type]}</td>
               <td className="px-5 py-3 border-t border-line font-mono text-xs">
                 {formatDate(r.startDate)} – {formatDate(r.endDate)}
               </td>

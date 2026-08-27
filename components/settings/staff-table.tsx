@@ -9,8 +9,6 @@ export type StaffMember = {
   email: string;
   isManager: boolean;
   allowanceAnnualHours: number;
-  allowanceSickHours: number;
-  allowanceOtherHours: number;
 };
 
 function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
@@ -20,8 +18,6 @@ function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
   const [calculating, setCalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [annual, setAnnual] = useState(String(member.allowanceAnnualHours));
-  const [sick, setSick] = useState(String(member.allowanceSickHours));
-  const [other, setOther] = useState(String(member.allowanceOtherHours));
   const [isManager, setIsManager] = useState(member.isManager);
 
   async function calculateAnnual() {
@@ -45,8 +41,6 @@ function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         allowanceAnnualHours: parseFloat(annual),
-        allowanceSickHours: parseFloat(sick),
-        allowanceOtherHours: parseFloat(other),
         isManager,
       }),
     });
@@ -73,6 +67,7 @@ function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
     }
     router.refresh();
   }
+
   return (
     <tr className={zebra ? "bg-card/40" : ""}>
       <td className="px-5 py-3 border-t border-line">
@@ -93,12 +88,6 @@ function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
             </button>
           </td>
           <td className="px-5 py-3 border-t border-line">
-            <input value={sick} onChange={(e) => setSick(e.target.value)} className="w-16 rounded border border-line px-1.5 py-1 text-xs font-mono" />
-          </td>
-          <td className="px-5 py-3 border-t border-line">
-            <input value={other} onChange={(e) => setOther(e.target.value)} className="w-16 rounded border border-line px-1.5 py-1 text-xs font-mono" />
-          </td>
-          <td className="px-5 py-3 border-t border-line">
             <label className="flex items-center gap-1 text-xs">
               <input type="checkbox" checked={isManager} onChange={(e) => setIsManager(e.target.checked)} />
               Manager
@@ -116,8 +105,6 @@ function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
       ) : (
         <>
           <td className="px-5 py-3 border-t border-line font-mono">{member.allowanceAnnualHours}h</td>
-          <td className="px-5 py-3 border-t border-line font-mono">{member.allowanceSickHours}h</td>
-          <td className="px-5 py-3 border-t border-line font-mono">{member.allowanceOtherHours}h</td>
           <td className="px-5 py-3 border-t border-line text-xs">{member.isManager ? "Manager" : "Staff"}</td>
           <td className="px-5 py-3 border-t border-line text-right space-x-3 text-xs">
             <button onClick={() => setEditing(true)} className="text-coverage hover:underline">
@@ -130,7 +117,7 @@ function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
         </>
       )}
       {error && (
-        <td colSpan={6} className="px-5 pb-2 text-xs text-declined">
+        <td colSpan={4} className="px-5 pb-2 text-xs text-declined">
           {error}
         </td>
       )}
@@ -220,8 +207,6 @@ export default function StaffTable({ staff }: { staff: StaffMember[] }) {
             <tr className="text-left text-ink-soft">
               <th className="px-5 py-3 font-medium">Staff</th>
               <th className="px-5 py-3 font-medium">Annual</th>
-              <th className="px-5 py-3 font-medium">Sick</th>
-              <th className="px-5 py-3 font-medium">Other</th>
               <th className="px-5 py-3 font-medium">Role</th>
               <th className="px-5 py-3 font-medium"></th>
             </tr>

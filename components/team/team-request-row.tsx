@@ -2,11 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LEAVE_TYPE_LABELS } from "@/lib/leave";
 
 export type TeamRequest = {
   id: string;
-  type: "annual" | "sick" | "other";
   startDate: string;
   endDate: string;
   hours: number;
@@ -39,7 +37,6 @@ export default function TeamRequestRow({ request, zebra }: { request: TeamReques
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [type, setType] = useState(request.type);
   const [startDate, setStartDate] = useState(toInputDate(request.startDate));
   const [endDate, setEndDate] = useState(toInputDate(request.endDate));
   const [hours, setHours] = useState(String(request.hours));
@@ -68,20 +65,8 @@ export default function TeamRequestRow({ request, zebra }: { request: TeamReques
   if (editing) {
     return (
       <tr className={zebra ? "bg-card/40" : ""}>
-        <td colSpan={6} className="px-5 py-4 border-t border-line">
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end">
-            <div>
-              <label className="block text-xs text-ink-soft mb-1">Type</label>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value as typeof type)}
-                className="w-full rounded-lg border border-line px-2 py-1.5 text-sm"
-              >
-                <option value="annual">Annual leave</option>
-                <option value="sick">Sick</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
+        <td colSpan={5} className="px-5 py-4 border-t border-line">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
             <div>
               <label className="block text-xs text-ink-soft mb-1">Start</label>
               <input
@@ -116,7 +101,6 @@ export default function TeamRequestRow({ request, zebra }: { request: TeamReques
                 onClick={async () => {
                   const ok = await call({
                     action: "edit",
-                    type,
                     startDate,
                     endDate,
                     hours: parseFloat(hours),
@@ -135,7 +119,7 @@ export default function TeamRequestRow({ request, zebra }: { request: TeamReques
                 Cancel
               </button>
             </div>
-            <div className="col-span-2 sm:col-span-5">
+            <div className="col-span-2 sm:col-span-4">
               <label className="block text-xs text-ink-soft mb-1">Notes</label>
               <input
                 value={notes}
@@ -154,7 +138,6 @@ export default function TeamRequestRow({ request, zebra }: { request: TeamReques
     <tr className={zebra ? "bg-card/40" : ""}>
       <td className="px-5 py-3 border-t border-line">
         <div className="font-medium">{request.userName}</div>
-        <div className="text-xs text-ink-soft">{LEAVE_TYPE_LABELS[request.type]}</div>
       </td>
       <td className="px-5 py-3 border-t border-line font-mono text-xs">
         {fmt(request.startDate)} – {fmt(request.endDate)}

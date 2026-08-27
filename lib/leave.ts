@@ -1,6 +1,5 @@
 import { prisma } from "./prisma";
 import { calculateLeaveHoursForRota, calculateStatutoryAnnualHours, type WeeklyRota } from "./business-rules";
-import type { LeaveType } from "@prisma/client";
 
 export async function loadExtraClosedDates(): Promise<Map<string, string>> {
   const rows = await prisma.extraClosedDate.findMany();
@@ -38,7 +37,6 @@ export async function computeStatutoryAnnualHoursForUser(userId: string, year: n
 }
 
 export type LeaveBalance = {
-  type: LeaveType;
   allowanceHours: number;
   approvedHours: number;
   pendingHours: number;
@@ -47,9 +45,8 @@ export type LeaveBalance = {
 };
 
 const STANDARD_DAY_HOURS = 7.5;
-const LEAVE_TYPES: LeaveType[] = ["annual", "sick", "other"];
 
-export async function getBalances(userId: string, excludeRequestId?: string): Promise<LeaveBalance[]> {
+export async function getBalance(userId: string, excludeRequestId?: string): Promise<LeaveBalance> {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
 
   const requests = await prisma.leaveRequest.findMany({
@@ -58,48 +55,29 @@ export async function getBalances(userId: string, excludeRequestId?: string): Pr
       status: { in: ["approved", "pending"] },
       ...(excludeRequestId ? { id: { not: excludeRequestId } } : {}),
     },
-    select: { type: true, status: true, hours: true },
+    select: { status: true, hours: true },
   });
 
-  const allowanceByType: Record<LeaveType, number> = {
-    annual: user.allowanceAnnualHours,
-    sick: user.allowanceSickHours,
-    other: user.allowanceOtherHours,
+  const approvedHours = requests.filter((r) => r.status === "approved").reduce((sum, r) => sum + r.hours, 0);
+  const pendingHours = requests.filter((r) => r.status === "pending").reduce((sum, r) => sum + r.hours, 0);
+  const allowanceHours = user.allowanceAnnualHours;
+  const remainingHours = allowanceHours - approvedHours - pendingHours;
+
+  return {
+    allowanceHours,
+    approvedHours,
+    pendingHours,
+    remainingHours,
+    remainingDaysApprox: Math.round((remainingHours / STANDARD_DAY_HOURS) * 10) / 10,
   };
-
-  return LEAVE_TYPES.map((type) => {
-    const approvedHours = requests
-      .filter((r) => r.type === type && r.status === "approved")
-      .reduce((sum, r) => sum + r.hours, 0);
-    const pendingHours = requests
-      .filter((r) => r.type === type && r.status === "pending")
-      .reduce((sum, r) => sum + r.hours, 0);
-    const allowanceHours = allowanceByType[type];
-    const remainingHours = allowanceHours - approvedHours - pendingHours;
-
-    return {
-      type,
-      allowanceHours,
-      approvedHours,
-      pendingHours,
-      remainingHours,
-      remainingDaysApprox: Math.round((remainingHours / STANDARD_DAY_HOURS) * 10) / 10,
-    };
-  });
 }
-
-export const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
-  annual: "Annual leave",
-  sick: "Sick",
-  other: "Other",
-};
 
 export async function getAllStaffBalances() {
   const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
   const results = await Promise.all(
     users.map(async (u) => ({
       user: { id: u.id, name: u.name, email: u.email, isManager: u.isManager },
-      balances: await getBalances(u.id),
+      balance: await getBalance(u.id),
     }))
   );
   return results;

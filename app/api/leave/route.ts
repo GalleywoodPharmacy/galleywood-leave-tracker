@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { computeHoursForRangeForUser, getBalances } from "@/lib/leave";
+import { computeHoursForRangeForUser, getBalance } from "@/lib/leave";
 import { sendLeaveSubmittedEmail } from "@/lib/email";
 
 export async function GET() {
@@ -20,7 +20,6 @@ export async function GET() {
 
 const createSchema = z
   .object({
-    type: z.enum(["annual", "sick", "other"]),
     startDate: z.string(),
     endDate: z.string(),
     hours: z.number().positive().optional(),
@@ -41,7 +40,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid request" }, { status: 400 });
   }
 
-  const { type, startDate, endDate, notes } = parsed.data;
+  const { startDate, endDate, notes } = parsed.data;
   const start = new Date(startDate);
   const end = new Date(endDate);
 
@@ -55,13 +54,10 @@ export async function POST(req: Request) {
     );
   }
 
-  const balances = await getBalances(session.user.id);
-  const balance = balances.find((b) => b.type === type)!;
+  const balance = await getBalance(session.user.id);
   if (hours > balance.remainingHours) {
     return NextResponse.json(
-      {
-        error: `That request needs ${hours}h but only ${balance.remainingHours}h remain for ${type} leave.`,
-      },
+      { error: `That request needs ${hours}h but only ${balance.remainingHours}h remain.` },
       { status: 400 }
     );
   }
@@ -69,7 +65,6 @@ export async function POST(req: Request) {
   const request = await prisma.leaveRequest.create({
     data: {
       userId: session.user.id,
-      type,
       startDate: start,
       endDate: end,
       hours,
@@ -82,7 +77,6 @@ export async function POST(req: Request) {
   await sendLeaveSubmittedEmail({
     managerEmails: managers.map((m) => m.email),
     requesterName: session.user.name ?? "A staff member",
-    type,
     startDate: start,
     endDate: end,
     hours,

@@ -3,7 +3,6 @@ import SignOutButton from "./sign-out-button";
 
 const LINKS = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/leave", label: "My Leave" },
   { href: "/calendar", label: "Calendar" },
   { href: "/coverage", label: "Coverage" },
 ];

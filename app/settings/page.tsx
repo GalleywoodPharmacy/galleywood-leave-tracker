@@ -22,8 +22,6 @@ export default async function SettingsPage() {
         email: true,
         isManager: true,
         allowanceAnnualHours: true,
-        allowanceSickHours: true,
-        allowanceOtherHours: true,
       },
     }),
     prisma.extraClosedDate.findMany({ orderBy: { date: "asc" } }),

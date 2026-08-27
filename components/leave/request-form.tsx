@@ -3,16 +3,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-const TYPE_OPTIONS = [
-  { value: "annual", label: "Annual leave" },
-  { value: "sick", label: "Sick" },
-  { value: "other", label: "Other" },
-] as const;
-
 export default function RequestForm() {
   const router = useRouter();
 
-  const [type, setType] = useState<"annual" | "sick" | "other">("annual");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [hours, setHours] = useState<string>("");
@@ -65,7 +58,6 @@ export default function RequestForm() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        type,
         startDate,
         endDate,
         hours: parsedHours,
@@ -91,21 +83,6 @@ export default function RequestForm() {
   return (
     <form onSubmit={handleSubmit} className="bg-white border border-line rounded-xl p-5 space-y-4">
       <h2 className="text-header text-lg">Request leave</h2>
-
-      <div>
-        <label className="block text-sm font-medium text-ink mb-1">Type</label>
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value as typeof type)}
-          className="w-full rounded-lg border border-line px-3 py-2 text-ink focus:outline-none focus:ring-2 focus:ring-accent"
-        >
-          {TYPE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -147,7 +124,7 @@ export default function RequestForm() {
           className="w-full rounded-lg border border-line px-3 py-2 text-ink font-mono text-sm focus:outline-none focus:ring-2 focus:ring-accent"
         />
         <p className="text-xs text-ink-soft mt-1">
-          Auto-calculated from opening hours and closed days — edit for a partial day.
+          Auto-calculated from your rota and closed days — edit for a partial day.
         </p>
       </div>
 

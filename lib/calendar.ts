@@ -1,12 +1,12 @@
 import { prisma } from "./prisma";
 import { loadExtraClosedDates } from "./leave";
 
-export type DayChipLeave = { name: string; type: "annual" | "sick" | "other"; status: "pending" | "approved" | "denied" };
+export type DayChipLeave = { name: string; status: "pending" | "approved" | "denied" };
 export type DayData = {
-  key: string; // YYYY-MM-DD
+  key: string;
   date: Date;
   leave: DayChipLeave[];
-  coverage: string[]; // names covering that date
+  coverage: string[];
 };
 
 function dayKey(d: Date) {
@@ -18,10 +18,9 @@ function addDays(d: Date, n: number) {
   return copy;
 }
 
-/** year: full year, month: 1-12 */
 export async function getMonthCalendarData(year: number, month: number) {
   const monthStart = new Date(Date.UTC(year, month - 1, 1));
-  const monthEnd = new Date(Date.UTC(year, month, 0)); // last day of month
+  const monthEnd = new Date(Date.UTC(year, month, 0));
 
   const [leaveRequests, coverage, extraClosedDates] = await Promise.all([
     prisma.leaveRequest.findMany({
@@ -51,7 +50,7 @@ export async function getMonthCalendarData(year: number, month: number) {
     const end = r.endDate.getTime() < monthEnd.getTime() ? r.endDate : monthEnd;
     let cursor = new Date(start);
     while (cursor.getTime() <= end.getTime()) {
-      ensure(cursor).leave.push({ name: r.user.name, type: r.type, status: r.status as "pending" | "approved" | "denied" });
+      ensure(cursor).leave.push({ name: r.user.name, status: r.status as "pending" | "approved" | "denied" });
       cursor = addDays(cursor, 1);
     }
   }

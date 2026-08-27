@@ -31,7 +31,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   await sendLeaveWithdrawnEmail({
     managerEmails: managers.map((m) => m.email),
     requesterName: session.user.name ?? "A staff member",
-    type: existing.type,
     startDate: existing.startDate,
     endDate: existing.endDate,
   });

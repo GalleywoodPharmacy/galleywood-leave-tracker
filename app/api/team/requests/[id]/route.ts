@@ -2,14 +2,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireManager } from "@/lib/require-manager";
 import { prisma } from "@/lib/prisma";
-import { getBalances, computeHoursForRangeForUser } from "@/lib/leave";
+import { getBalance, computeHoursForRangeForUser } from "@/lib/leave";
 import { sendLeaveDecisionEmail, sendLeaveCancelledByManagerEmail, sendLeaveAmendedEmail } from "@/lib/email";
 
 const decideSchema = z.object({ action: z.literal("decide"), decision: z.enum(["approved", "denied"]) });
 const cancelSchema = z.object({ action: z.literal("cancel") });
 const editSchema = z.object({
   action: z.literal("edit"),
-  type: z.enum(["annual", "sick", "other"]).optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   hours: z.number().positive().optional(),
@@ -42,7 +41,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       requesterEmail: existing.user.email,
       requesterName: existing.user.name,
       status: decide.data.decision,
-      type: existing.type,
       startDate: existing.startDate,
       endDate: existing.endDate,
     });
@@ -58,7 +56,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     await sendLeaveCancelledByManagerEmail({
       requesterEmail: existing.user.email,
       requesterName: existing.user.name,
-      type: existing.type,
       startDate: existing.startDate,
       endDate: existing.endDate,
     });
@@ -67,7 +64,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   const edit = editSchema.safeParse(body);
   if (edit.success) {
-    const type = edit.data.type ?? existing.type;
     const startDate = edit.data.startDate ? new Date(edit.data.startDate) : existing.startDate;
     const endDate = edit.data.endDate ? new Date(edit.data.endDate) : existing.endDate;
 
@@ -80,11 +76,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       (edit.data.startDate || edit.data.endDate ? await computeHoursForRangeForUser(existing.userId, startDate, endDate) : existing.hours);
 
     if (existing.status === "pending" || existing.status === "approved") {
-      const balances = await getBalances(existing.userId, existing.id);
-      const balance = balances.find((b) => b.type === type)!;
+      const balance = await getBalance(existing.userId, existing.id);
       if (hours > balance.remainingHours) {
         return NextResponse.json(
-          { error: `That change needs ${hours}h but only ${balance.remainingHours}h remain for ${type} leave.` },
+          { error: `That change needs ${hours}h but only ${balance.remainingHours}h remain.` },
           { status: 400 }
         );
       }
@@ -93,7 +88,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const updated = await prisma.leaveRequest.update({
       where: { id: params.id },
       data: {
-        type,
         startDate,
         endDate,
         hours,
@@ -103,7 +97,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     await sendLeaveAmendedEmail({
       requesterEmail: existing.user.email,
       requesterName: existing.user.name,
-      type,
       startDate,
       endDate,
       hours,

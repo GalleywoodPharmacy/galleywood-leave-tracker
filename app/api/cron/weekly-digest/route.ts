@@ -3,11 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { getNeedsCoverage } from "@/lib/coverage";
 import { sendWeeklyDigestEmail } from "@/lib/email";
 
-/**
- * Triggered by Vercel Cron (see vercel.json) — Mondays 07:00 UTC.
- * Protected with CRON_SECRET so it can't be hit by anyone who finds the URL;
- * Vercel Cron sends this automatically as a Bearer token when configured.
- */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (secret) {
@@ -35,7 +30,6 @@ export async function GET(req: Request) {
     managerEmails: managers.map((m) => m.email),
     upcomingApproved: upcomingApproved.map((r) => ({
       name: r.user.name,
-      type: r.type,
       startDate: r.startDate,
       endDate: r.endDate,
     })),

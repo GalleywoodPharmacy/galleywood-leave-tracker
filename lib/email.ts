@@ -25,7 +25,6 @@ function fmtDate(d: Date) {
 export async function sendLeaveSubmittedEmail(params: {
   managerEmails: string[];
   requesterName: string;
-  type: string;
   startDate: Date;
   endDate: Date;
   hours: number;
@@ -36,7 +35,7 @@ export async function sendLeaveSubmittedEmail(params: {
   await send(
     params.managerEmails,
     `New leave request from ${params.requesterName}`,
-    `<p><strong>${params.requesterName}</strong> requested <strong>${params.type}</strong> leave:
+    `<p><strong>${params.requesterName}</strong> requested leave:
      ${fmtDate(params.startDate)} – ${fmtDate(params.endDate)} (${params.hours}h).</p>
      <p><a href="${link}">Review in Team &amp; Approvals</a></p>`
   );
@@ -46,29 +45,28 @@ export async function sendLeaveDecisionEmail(params: {
   requesterEmail: string;
   requesterName: string;
   status: "approved" | "denied";
-  type: string;
   startDate: Date;
   endDate: Date;
 }) {
   const verb = params.status === "approved" ? "approved" : "declined";
   await send(
     params.requesterEmail,
-    `Your ${params.type} leave request was ${verb}`,
+    `Your leave request was ${verb}`,
     `<p>Hi ${params.requesterName},</p>
-     <p>Your <strong>${params.type}</strong> leave request for ${fmtDate(params.startDate)} – ${fmtDate(params.endDate)}
+     <p>Your leave request for ${fmtDate(params.startDate)} – ${fmtDate(params.endDate)}
      has been <strong>${verb}</strong>.</p>
-     <p><a href="${APP_URL}/leave">View My Leave</a></p>`
+     <p><a href="${APP_URL}/dashboard">View My Leave</a></p>`
   );
 }
 
 export async function sendWeeklyDigestEmail(params: {
   managerEmails: string[];
-  upcomingApproved: { name: string; type: string; startDate: Date; endDate: Date }[];
+  upcomingApproved: { name: string; startDate: Date; endDate: Date }[];
   coverageGapDates: Date[];
 }) {
   if (params.managerEmails.length === 0) return;
   const leaveRows = params.upcomingApproved
-    .map((r) => `<li>${r.name} — ${r.type} — ${fmtDate(r.startDate)} to ${fmtDate(r.endDate)}</li>`)
+    .map((r) => `<li>${r.name} — ${fmtDate(r.startDate)} to ${fmtDate(r.endDate)}</li>`)
     .join("");
   const gapRows = params.coverageGapDates.map((d) => `<li>${fmtDate(d)}</li>`).join("");
 
@@ -99,7 +97,6 @@ export async function sendCoverageAddedEmail(params: {
 export async function sendLeaveWithdrawnEmail(params: {
   managerEmails: string[];
   requesterName: string;
-  type: string;
   startDate: Date;
   endDate: Date;
 }) {
@@ -107,7 +104,7 @@ export async function sendLeaveWithdrawnEmail(params: {
   await send(
     params.managerEmails,
     `${params.requesterName} withdrew a leave request`,
-    `<p><strong>${params.requesterName}</strong> withdrew their <strong>${params.type}</strong> leave request
+    `<p><strong>${params.requesterName}</strong> withdrew their leave request
      for ${fmtDate(params.startDate)} – ${fmtDate(params.endDate)}.</p>
      <p><a href="${APP_URL}/team">View Team &amp; Approvals</a></p>`
   );
@@ -116,7 +113,6 @@ export async function sendLeaveWithdrawnEmail(params: {
 export async function sendLeaveAmendedEmail(params: {
   requesterEmail: string;
   requesterName: string;
-  type: string;
   startDate: Date;
   endDate: Date;
   hours: number;
@@ -126,15 +122,14 @@ export async function sendLeaveAmendedEmail(params: {
     `Your leave request was updated`,
     `<p>Hi ${params.requesterName},</p>
      <p>A manager updated your leave request. It now reads:
-     <strong>${params.type}</strong>, ${fmtDate(params.startDate)} – ${fmtDate(params.endDate)} (${params.hours}h).</p>
-     <p><a href="${APP_URL}/leave">View My Leave</a></p>`
+     ${fmtDate(params.startDate)} – ${fmtDate(params.endDate)} (${params.hours}h).</p>
+     <p><a href="${APP_URL}/dashboard">View My Leave</a></p>`
   );
 }
 
 export async function sendLeaveCancelledByManagerEmail(params: {
   requesterEmail: string;
   requesterName: string;
-  type: string;
   startDate: Date;
   endDate: Date;
 }) {
@@ -142,8 +137,8 @@ export async function sendLeaveCancelledByManagerEmail(params: {
     params.requesterEmail,
     `Your leave request was cancelled`,
     `<p>Hi ${params.requesterName},</p>
-     <p>A manager cancelled your <strong>${params.type}</strong> leave request
+     <p>A manager cancelled your leave request
      for ${fmtDate(params.startDate)} – ${fmtDate(params.endDate)}.</p>
-     <p><a href="${APP_URL}/leave">View My Leave</a></p>`
+     <p><a href="${APP_URL}/dashboard">View My Leave</a></p>`
   );
 }

@@ -64,7 +64,7 @@ export default function MonthGrid({
                   <div
                     key={i}
                     className={`truncate rounded px-1 py-0.5 ${STATUS_CHIP[l.status]}`}
-                    title={`${l.name} — ${l.type} (${l.status})`}
+                    title={`${l.name} (${l.status})`}
                   >
                     {l.name.split(" ")[0]}
                   </div>

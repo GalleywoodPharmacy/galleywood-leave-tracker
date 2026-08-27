@@ -19,8 +19,6 @@ const updateSchema = z.object({
   name: z.string().min(1).optional(),
   isManager: z.boolean().optional(),
   allowanceAnnualHours: z.number().nonnegative().optional(),
-  allowanceSickHours: z.number().nonnegative().optional(),
-  allowanceOtherHours: z.number().nonnegative().optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -47,8 +45,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       email: true,
       isManager: true,
       allowanceAnnualHours: true,
-      allowanceSickHours: true,
-      allowanceOtherHours: true,
     },
   });
   return NextResponse.json({ user });

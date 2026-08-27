@@ -10,7 +10,6 @@ import ActivityLog from "@/components/team/activity-log";
 
 function serialize(r: {
   id: string;
-  type: string;
   startDate: Date;
   endDate: Date;
   hours: number;
@@ -23,7 +22,6 @@ function serialize(r: {
 }) {
   return {
     id: r.id,
-    type: r.type as "annual" | "sick" | "other",
     startDate: r.startDate.toISOString(),
     endDate: r.endDate.toISOString(),
     hours: r.hours,

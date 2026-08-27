@@ -7,12 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum LeaveType {
-  annual
-  sick
-  other
-}
-
 enum LeaveStatus {
   pending
   approved
@@ -30,8 +24,6 @@ model User {
   isManager Boolean @default(false)
 
   allowanceAnnualHours Float @default(200)
-  allowanceSickHours   Float @default(80)
-  allowanceOtherHours  Float @default(40)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -51,7 +43,6 @@ model LeaveRequest {
   userId String
   user   User      @relation("UserLeaveRequests", fields: [userId], references: [id], onDelete: Cascade)
 
-  type  LeaveType
   startDate DateTime @db.Date
   endDate   DateTime @db.Date
 

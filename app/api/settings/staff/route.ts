@@ -16,8 +16,6 @@ export async function GET() {
       email: true,
       isManager: true,
       allowanceAnnualHours: true,
-      allowanceSickHours: true,
-      allowanceOtherHours: true,
     },
   });
   return NextResponse.json({ staff });
@@ -29,8 +27,6 @@ const createSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   isManager: z.boolean().default(false),
   allowanceAnnualHours: z.number().nonnegative().default(200),
-  allowanceSickHours: z.number().nonnegative().default(80),
-  allowanceOtherHours: z.number().nonnegative().default(40),
 });
 
 export async function POST(req: Request) {
@@ -54,8 +50,6 @@ export async function POST(req: Request) {
       passwordHash,
       isManager: parsed.data.isManager,
       allowanceAnnualHours: parsed.data.allowanceAnnualHours,
-      allowanceSickHours: parsed.data.allowanceSickHours,
-      allowanceOtherHours: parsed.data.allowanceOtherHours,
     },
     select: { id: true, name: true, email: true, isManager: true },
   });
