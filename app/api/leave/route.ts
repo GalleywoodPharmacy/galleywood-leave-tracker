@@ -54,10 +54,10 @@ export async function POST(req: Request) {
     );
   }
 
-  const balance = await getBalance(session.user.id);
+  const balance = await getBalance(session.user.id, start.getUTCFullYear());
   if (hours > balance.remainingHours) {
     return NextResponse.json(
-      { error: `That request needs ${hours}h but only ${balance.remainingHours}h remain.` },
+      { error: `That request needs ${hours}h but only ${balance.remainingHours}h remain for ${start.getUTCFullYear()}.` },
       { status: 400 }
     );
   }

@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getAllStaffBalances } from "@/lib/leave";
@@ -35,10 +36,13 @@ function serialize(r: {
   };
 }
 
-export default async function TeamPage() {
+export default async function TeamPage({ searchParams }: { searchParams: { year?: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
   if (!session.user.isManager) redirect("/dashboard");
+
+  const now = new Date();
+  const selectedYear = searchParams.year ? parseInt(searchParams.year, 10) : now.getUTCFullYear();
 
   const [pending, recent, staffBalances] = await Promise.all([
     prisma.leaveRequest.findMany({
@@ -51,7 +55,7 @@ export default async function TeamPage() {
       orderBy: { submittedAt: "desc" },
       take: 25,
     }),
-    getAllStaffBalances(),
+    getAllStaffBalances(selectedYear),
   ]);
 
   return (
@@ -67,7 +71,24 @@ export default async function TeamPage() {
         </section>
 
         <section>
-          <h2 className="text-header text-lg mb-3">Team balances</h2>
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
+            <h2 className="text-header text-lg">Team balances</h2>
+            <div className="flex items-center gap-2 text-sm">
+              <Link
+                href={`/team?year=${selectedYear - 1}`}
+                className="rounded-lg border border-line px-3 py-1.5 hover:bg-card transition-colors"
+              >
+                ← {selectedYear - 1}
+              </Link>
+              <span className="px-3 py-1.5 font-medium text-header font-mono">{selectedYear}</span>
+              <Link
+                href={`/team?year=${selectedYear + 1}`}
+                className="rounded-lg border border-line px-3 py-1.5 hover:bg-card transition-colors"
+              >
+                {selectedYear + 1} →
+              </Link>
+            </div>
+          </div>
           <TeamBalanceTable staffBalances={staffBalances} />
         </section>
 

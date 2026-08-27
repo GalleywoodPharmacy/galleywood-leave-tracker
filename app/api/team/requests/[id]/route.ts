@@ -76,10 +76,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       (edit.data.startDate || edit.data.endDate ? await computeHoursForRangeForUser(existing.userId, startDate, endDate) : existing.hours);
 
     if (existing.status === "pending" || existing.status === "approved") {
-      const balance = await getBalance(existing.userId, existing.id);
+      const balance = await getBalance(existing.userId, startDate.getUTCFullYear(), existing.id);
       if (hours > balance.remainingHours) {
         return NextResponse.json(
-          { error: `That change needs ${hours}h but only ${balance.remainingHours}h remain.` },
+          { error: `That change needs ${hours}h but only ${balance.remainingHours}h remain for ${startDate.getUTCFullYear()}.` },
           { status: 400 }
         );
       }
