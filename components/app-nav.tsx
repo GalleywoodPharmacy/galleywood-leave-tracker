@@ -5,6 +5,7 @@ const LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/calendar", label: "Calendar" },
   { href: "/coverage", label: "Coverage" },
+  { href: "/account", label: "Account" },
 ];
 
 export default function AppNav({ isManager }: { isManager: boolean }) {

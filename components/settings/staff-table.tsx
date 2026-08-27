@@ -19,6 +19,8 @@ function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [annual, setAnnual] = useState(String(member.allowanceAnnualHours));
   const [isManager, setIsManager] = useState(member.isManager);
+  const [email, setEmail] = useState(member.email);
+  const [newPassword, setNewPassword] = useState("");
 
   async function calculateAnnual() {
     setError(null);
@@ -42,6 +44,8 @@ function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
       body: JSON.stringify({
         allowanceAnnualHours: parseFloat(annual),
         isManager,
+        email,
+        ...(newPassword.trim() ? { newPassword: newPassword.trim() } : {}),
       }),
     });
     setBusy(false);
@@ -50,6 +54,7 @@ function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
       setError(data.error ?? "Couldn't save.");
       return;
     }
+    setNewPassword("");
     setEditing(false);
     router.refresh();
   }
@@ -68,59 +73,96 @@ function StaffRow({ member, zebra }: { member: StaffMember; zebra: boolean }) {
     router.refresh();
   }
 
+  if (editing) {
+    return (
+      <tr className={zebra ? "bg-card/40" : ""}>
+        <td colSpan={4} className="px-5 py-4 border-t border-line">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-ink-soft mb-1">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-lg border border-line px-2 py-1.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-ink-soft mb-1">New password (leave blank to keep current)</label>
+              <input
+                type="text"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full rounded-lg border border-line px-2 py-1.5 text-sm font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-ink-soft mb-1">Annual allowance (hours)</label>
+              <input
+                value={annual}
+                onChange={(e) => setAnnual(e.target.value)}
+                className="w-28 rounded-lg border border-line px-2 py-1.5 text-sm font-mono"
+              />
+              <button
+                type="button"
+                disabled={calculating}
+                onClick={calculateAnnual}
+                className="block text-[11px] text-coverage hover:underline mt-1 disabled:opacity-60"
+              >
+                {calculating ? "Calculating…" : "Calculate from rota"}
+              </button>
+            </div>
+            <div className="flex items-end">
+              <label className="flex items-center gap-2 text-sm text-ink">
+                <input type="checkbox" checked={isManager} onChange={(e) => setIsManager(e.target.checked)} />
+                Manager
+              </label>
+            </div>
+          </div>
+
+          {error && <p className="text-sm text-declined mt-3">{error}</p>}
+
+          <div className="flex gap-3 mt-3">
+            <button
+              disabled={busy}
+              onClick={save}
+              className="rounded-lg bg-primary text-white text-sm px-4 py-1.5 hover:bg-header disabled:opacity-60"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => {
+                setEditing(false);
+                setNewPassword("");
+                setEmail(member.email);
+              }}
+              className="rounded-lg border border-line text-sm px-4 py-1.5 hover:bg-card"
+            >
+              Cancel
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
   return (
     <tr className={zebra ? "bg-card/40" : ""}>
       <td className="px-5 py-3 border-t border-line">
         <div className="font-medium">{member.name}</div>
         <div className="text-xs text-ink-soft">{member.email}</div>
       </td>
-      {editing ? (
-        <>
-          <td className="px-5 py-3 border-t border-line">
-            <input value={annual} onChange={(e) => setAnnual(e.target.value)} className="w-16 rounded border border-line px-1.5 py-1 text-xs font-mono" />
-            <button
-              type="button"
-              disabled={calculating}
-              onClick={calculateAnnual}
-              className="block text-[11px] text-coverage hover:underline mt-0.5 disabled:opacity-60"
-            >
-              {calculating ? "Calculating…" : "Calculate from rota"}
-            </button>
-          </td>
-          <td className="px-5 py-3 border-t border-line">
-            <label className="flex items-center gap-1 text-xs">
-              <input type="checkbox" checked={isManager} onChange={(e) => setIsManager(e.target.checked)} />
-              Manager
-            </label>
-          </td>
-          <td className="px-5 py-3 border-t border-line text-right space-x-3 text-xs">
-            <button disabled={busy} onClick={save} className="text-primary hover:underline disabled:opacity-60">
-              Save
-            </button>
-            <button onClick={() => setEditing(false)} className="text-ink-soft hover:underline">
-              Cancel
-            </button>
-          </td>
-        </>
-      ) : (
-        <>
-          <td className="px-5 py-3 border-t border-line font-mono">{member.allowanceAnnualHours}h</td>
-          <td className="px-5 py-3 border-t border-line text-xs">{member.isManager ? "Manager" : "Staff"}</td>
-          <td className="px-5 py-3 border-t border-line text-right space-x-3 text-xs">
-            <button onClick={() => setEditing(true)} className="text-coverage hover:underline">
-              Edit
-            </button>
-            <button disabled={busy} onClick={remove} className="text-declined hover:underline disabled:opacity-60">
-              Remove
-            </button>
-          </td>
-        </>
-      )}
-      {error && (
-        <td colSpan={4} className="px-5 pb-2 text-xs text-declined">
-          {error}
-        </td>
-      )}
+      <td className="px-5 py-3 border-t border-line font-mono">{member.allowanceAnnualHours}h</td>
+      <td className="px-5 py-3 border-t border-line text-xs">{member.isManager ? "Manager" : "Staff"}</td>
+      <td className="px-5 py-3 border-t border-line text-right space-x-3 text-xs">
+        <button onClick={() => setEditing(true)} className="text-coverage hover:underline">
+          Edit
+        </button>
+        <button disabled={busy} onClick={remove} className="text-declined hover:underline disabled:opacity-60">
+          Remove
+        </button>
+      </td>
     </tr>
   );
 }
@@ -218,9 +260,8 @@ export default function StaffTable({ staff }: { staff: StaffMember[] }) {
           </tbody>
         </table>
         <p className="text-xs text-ink-soft px-5 py-3 border-t border-line">
-          "Calculate from rota" fills in the Annual field using (this person's weekly rota hours × 5.6) minus any
-          bank-holiday hours that fall on a day they work this year — set their rota in Staff rotas below first.
-          It only fills the box; click Save to apply it.
+          Click Edit to change someone's email, reset their password, adjust their annual allowance, or change their role.
+          Leave the password box blank to keep their current password unchanged.
         </p>
       </div>
       <AddStaffForm />

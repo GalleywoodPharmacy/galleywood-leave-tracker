@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireManager } from "@/lib/require-manager";
 import { prisma } from "@/lib/prisma";
 import { computeStatutoryAnnualHoursForUser } from "@/lib/leave";
+import { hashPassword } from "@/lib/password";
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const check = await requireManager();
@@ -17,8 +18,10 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
+  email: z.string().email().optional(),
   isManager: z.boolean().optional(),
   allowanceAnnualHours: z.number().nonnegative().optional(),
+  newPassword: z.string().min(8, "Password must be at least 8 characters").optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -26,7 +29,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (check instanceof NextResponse) return check;
 
   const parsed = updateSchema.safeParse(await req.json());
-  if (!parsed.success) return NextResponse.json({ error: "Invalid update" }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid update" }, { status: 400 });
+  }
 
   if (parsed.data.isManager === false) {
     const managerCount = await prisma.user.count({ where: { isManager: true } });
@@ -36,9 +41,32 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     }
   }
 
+  const { email, newPassword, ...rest } = parsed.data;
+
+  const updateData: {
+    name?: string;
+    isManager?: boolean;
+    allowanceAnnualHours?: number;
+    email?: string;
+    passwordHash?: string;
+  } = { ...rest };
+
+  if (email) {
+    const normalizedEmail = email.toLowerCase().trim();
+    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    if (existing && existing.id !== params.id) {
+      return NextResponse.json({ error: "That email is already in use." }, { status: 409 });
+    }
+    updateData.email = normalizedEmail;
+  }
+
+  if (newPassword) {
+    updateData.passwordHash = await hashPassword(newPassword);
+  }
+
   const user = await prisma.user.update({
     where: { id: params.id },
-    data: parsed.data,
+    data: updateData,
     select: {
       id: true,
       name: true,

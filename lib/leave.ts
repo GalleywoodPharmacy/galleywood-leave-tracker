@@ -17,7 +17,7 @@ export async function loadExtraClosedDates(): Promise<Map<string, string>> {
   return map;
 }
 
-export const DEFAULT_ROTA: WeeklyRota = { sun: 0, mon: 7.5, tue: 7.5, wed: 7.5, thu: 7.5, fri: 7.5, sat: 4 };
+export const DEFAULT_ROTA: WeeklyRota = { sun: 0, mon: 8, tue: 8, wed: 8, thu: 8, fri: 8, sat: 4 };
 
 export async function getRotaForUser(userId: string): Promise<WeeklyRota> {
   const rota = await prisma.staffRota.findUnique({ where: { userId } });
@@ -57,7 +57,7 @@ export type LeaveBalance = {
   remainingDaysApprox: number;
 };
 
-const STANDARD_DAY_HOURS = 7.5;
+const STANDARD_DAY_HOURS = 8;
 
 export async function getBalance(userId: string, excludeRequestId?: string): Promise<LeaveBalance> {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });

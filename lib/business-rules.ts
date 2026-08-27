@@ -3,13 +3,13 @@ export type ClosedReason =
   | { closed: true; reason: "sunday" | "bank-holiday" | "extra-closure"; label: string };
 
 const HOURS_BY_WEEKDAY: Record<number, number> = {
-  0: 0,
+  0: 0, // Sunday
   1: 7.5,
   2: 7.5,
   3: 7.5,
   4: 7.5,
   5: 7.5,
-  6: 4,
+  6: 4, // Saturday
 };
 
 function toUTCDate(d: Date): Date {

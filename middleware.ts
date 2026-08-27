@@ -7,7 +7,7 @@ import type { NextRequest } from "next/server";
 const MANAGER_ONLY_PREFIXES = ["/team", "/settings"];
 
 // Everything under these prefixes requires a signed-in user.
-const PROTECTED_PREFIXES = ["/dashboard", "/leave", "/calendar", "/coverage", "/team", "/settings"];
+const PROTECTED_PREFIXES = ["/dashboard", "/leave", "/calendar", "/coverage", "/team", "/settings", "/account"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -32,5 +32,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/leave/:path*", "/calendar/:path*", "/coverage/:path*", "/team/:path*", "/settings/:path*"],
+  matcher: ["/dashboard/:path*", "/leave/:path*", "/calendar/:path*", "/coverage/:path*", "/team/:path*", "/settings/:path*", "/account/:path*"],
 };
