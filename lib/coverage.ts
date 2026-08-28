@@ -18,13 +18,27 @@ function dayKey(d: Date) {
 
 export type NeedsCoverageDay = { requestId: string; dateKey: string; date: Date; name: string };
 
-export async function getNeedsCoverage(daysAhead = 60): Promise<NeedsCoverageDay[]> {
+/**
+ * Open days in the next `daysAhead` with approved leave and no cover set —
+ * one entry per person per day, since cover now lives on the leave request
+ * itself rather than a separate table.
+ *
+ * excludeUserId, if given, leaves that person's own leave out of the list
+ * entirely — they still see it (and can add cover) on the Calendar as
+ * normal; this just keeps their own gaps out of this flagged list.
+ */
+export async function getNeedsCoverage(daysAhead = 60, excludeUserId?: string): Promise<NeedsCoverageDay[]> {
   const start = todayUTC();
   const end = addDays(start, daysAhead);
 
   const [approvedLeave, extraClosedDates] = await Promise.all([
     prisma.leaveRequest.findMany({
-      where: { status: "approved", startDate: { lte: end }, endDate: { gte: start } },
+      where: {
+        status: "approved",
+        startDate: { lte: end },
+        endDate: { gte: start },
+        ...(excludeUserId ? { userId: { not: excludeUserId } } : {}),
+      },
       include: { user: { select: { name: true } } },
     }),
     loadExtraClosedDates(),

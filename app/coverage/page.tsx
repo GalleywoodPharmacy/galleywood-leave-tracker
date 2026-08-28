@@ -9,7 +9,7 @@ export default async function CoveragePage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  const needsCoverage = await getNeedsCoverage(60);
+  const needsCoverage = await getNeedsCoverage(60, session.user.id);
 
   return (
     <div className="min-h-screen bg-page">
@@ -21,8 +21,9 @@ export default async function CoveragePage() {
         <section>
           <h2 className="text-header text-lg mb-3">Needs coverage</h2>
           <p className="text-xs text-ink-soft mb-3">
-            Open days with approved leave and no one covering yet. To assign a specific colleague, name someone
-            outside the team, or set cover in advance for pending leave, use the Calendar instead — click any day.
+            Open days with approved leave and no one covering yet — not including your own leave, which you can
+            still set cover for any time on the Calendar. To assign a specific colleague, name someone outside the
+            team, or set cover in advance for pending leave, use the Calendar instead — click any day.
           </p>
           <NeedsCoverageList
             items={needsCoverage.map((d) => ({ requestId: d.requestId, dateKey: d.dateKey, name: d.name }))}
