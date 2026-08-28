@@ -59,6 +59,12 @@ model LeaveRequest {
   hours Float
   notes String?
 
+  // Free-text name of whoever's covering this leave, when that's someone
+  // outside the staff system entirely (a locum, family cover, etc.) rather
+  // than a real account — the Coverage feature elsewhere in the app only
+  // supports assigning actual staff accounts, so this fills that gap.
+  coverName String?
+
   status LeaveStatus @default(pending)
 
   submittedAt DateTime  @default(now())

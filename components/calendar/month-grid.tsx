@@ -1,5 +1,6 @@
 import { getClosedReason, getBlackoutLabelForDate, type BlackoutPeriod } from "@/lib/business-rules";
 import type { DayData } from "@/lib/calendar";
+import LeaveChip from "./leave-chip";
 
 const STATUS_CHIP: Record<string, string> = {
   pending: "bg-pending/15 text-pending",
@@ -14,18 +15,26 @@ function mondayFirstIndex(date: Date): number {
   return (date.getUTCDay() + 6) % 7;
 }
 
+function formatDayLabel(date: Date) {
+  return date.toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "short", year: "numeric" });
+}
+
 export default function MonthGrid({
   year,
   month,
   byDate,
   extraClosedDates,
   blackoutPeriods,
+  currentUserId,
+  isManager,
 }: {
   year: number;
   month: number; // 1-12
   byDate: Map<string, DayData>;
   extraClosedDates: Map<string, string>;
   blackoutPeriods: BlackoutPeriod[];
+  currentUserId: string;
+  isManager: boolean;
 }) {
   const monthStart = new Date(Date.UTC(year, month - 1, 1));
   const monthEnd = new Date(Date.UTC(year, month, 0));
@@ -78,13 +87,16 @@ export default function MonthGrid({
 
               <div className="mt-1 space-y-0.5">
                 {data?.leave.slice(0, 3).map((l, i) => (
-                  <div
+                  <LeaveChip
                     key={i}
-                    className={`truncate rounded px-1 py-0.5 ${STATUS_CHIP[l.status]}`}
-                    title={`${l.name} (${l.status})`}
-                  >
-                    {l.name.split(" ")[0]}
-                  </div>
+                    requestId={l.requestId}
+                    name={l.name}
+                    status={l.status}
+                    coverName={l.coverName}
+                    canEdit={l.userId === currentUserId || isManager}
+                    statusClass={STATUS_CHIP[l.status]}
+                    dateLabel={formatDayLabel(date)}
+                  />
                 ))}
                 {data && data.leave.length > 3 && (
                   <div className="text-[10px] text-ink-soft">+{data.leave.length - 3} more</div>

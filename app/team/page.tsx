@@ -15,6 +15,7 @@ function serialize(r: {
   endDate: Date;
   hours: number;
   notes: string | null;
+  coverName: string | null;
   status: string;
   submittedAt: Date;
   decidedAt: Date | null;
@@ -27,6 +28,7 @@ function serialize(r: {
     endDate: r.endDate.toISOString(),
     hours: r.hours,
     notes: r.notes,
+    coverName: r.coverName,
     status: r.status as "pending" | "approved" | "denied" | "cancelled",
     submittedAt: r.submittedAt.toISOString(),
     decidedAt: r.decidedAt ? r.decidedAt.toISOString() : null,

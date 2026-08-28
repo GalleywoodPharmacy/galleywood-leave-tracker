@@ -39,6 +39,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
     endDate: r.endDate.toISOString(),
     hours: r.hours,
     notes: r.notes,
+    coverName: r.coverName,
     status: r.status,
     submittedAt: r.submittedAt.toISOString(),
   }));

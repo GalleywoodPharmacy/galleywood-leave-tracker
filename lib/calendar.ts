@@ -1,7 +1,13 @@
 import { prisma } from "./prisma";
 import { loadExtraClosedDates } from "./leave";
 
-export type DayChipLeave = { name: string; status: "pending" | "approved" | "denied" };
+export type DayChipLeave = {
+  requestId: string;
+  userId: string;
+  name: string;
+  status: "pending" | "approved" | "denied";
+  coverName: string | null;
+};
 export type DayData = {
   key: string;
   date: Date;
@@ -50,7 +56,13 @@ export async function getMonthCalendarData(year: number, month: number) {
     const end = r.endDate.getTime() < monthEnd.getTime() ? r.endDate : monthEnd;
     let cursor = new Date(start);
     while (cursor.getTime() <= end.getTime()) {
-      ensure(cursor).leave.push({ name: r.user.name, status: r.status as "pending" | "approved" | "denied" });
+      ensure(cursor).leave.push({
+        requestId: r.id,
+        userId: r.userId,
+        name: r.user.name,
+        status: r.status as "pending" | "approved" | "denied",
+        coverName: r.coverName,
+      });
       cursor = addDays(cursor, 1);
     }
   }

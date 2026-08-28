@@ -13,6 +13,7 @@ const editSchema = z.object({
   endDate: z.string().optional(),
   hours: z.number().positive().optional(),
   notes: z.string().max(2000).optional(),
+  coverName: z.string().max(200).optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -92,6 +93,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         endDate,
         hours,
         notes: edit.data.notes !== undefined ? edit.data.notes || null : existing.notes,
+        coverName: edit.data.coverName !== undefined ? edit.data.coverName || null : existing.coverName,
       },
     });
     await sendLeaveAmendedEmail({

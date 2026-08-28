@@ -81,12 +81,18 @@ export default async function CalendarPage({
           </span>
         </div>
 
+        <p className="text-xs text-ink-soft">
+          Click your own leave (or anyone's, if you're a manager) to add or change who's covering it.
+        </p>
+
         <MonthGrid
           year={year}
           month={month}
           byDate={byDate}
           extraClosedDates={extraClosedDates}
           blackoutPeriods={blackoutPeriods}
+          currentUserId={session.user.id}
+          isManager={session.user.isManager}
         />
       </main>
     </div>
