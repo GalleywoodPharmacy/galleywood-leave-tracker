@@ -1,4 +1,4 @@
-import { getClosedReason } from "@/lib/business-rules";
+import { getClosedReason, getBlackoutLabelForDate, type BlackoutPeriod } from "@/lib/business-rules";
 import type { DayData } from "@/lib/calendar";
 
 const STATUS_CHIP: Record<string, string> = {
@@ -14,11 +14,13 @@ export default function MonthGrid({
   month,
   byDate,
   extraClosedDates,
+  blackoutPeriods,
 }: {
   year: number;
   month: number; // 1-12
   byDate: Map<string, DayData>;
   extraClosedDates: Map<string, string>;
+  blackoutPeriods: BlackoutPeriod[];
 }) {
   const monthStart = new Date(Date.UTC(year, month - 1, 1));
   const monthEnd = new Date(Date.UTC(year, month, 0));
@@ -46,18 +48,28 @@ export default function MonthGrid({
           const key = date.toISOString().slice(0, 10);
           const inMonth = date.getUTCMonth() === month - 1;
           const closed = getClosedReason(date, extraClosedDates);
+          const blackoutLabel = !closed.closed ? getBlackoutLabelForDate(key, blackoutPeriods) : null;
           const data = byDate.get(key);
 
           return (
             <div
               key={key}
-              title={closed.closed ? closed.label : undefined}
+              title={closed.closed ? closed.label : blackoutLabel ?? undefined}
               className={`min-h-[6.5rem] border-b border-r border-line p-1.5 text-xs align-top ${
                 inMonth ? "" : "bg-page/60"
-              } ${closed.closed ? "bg-[repeating-linear-gradient(45deg,rgba(21,37,34,0.04),rgba(21,37,34,0.04)_6px,transparent_6px,transparent_12px)]" : ""}`}
+              } ${
+                closed.closed
+                  ? "bg-[repeating-linear-gradient(45deg,rgba(21,37,34,0.04),rgba(21,37,34,0.04)_6px,transparent_6px,transparent_12px)]"
+                  : blackoutLabel
+                    ? "bg-ink-soft/10"
+                    : ""
+              }`}
             >
               <div className={`font-mono ${inMonth ? "text-ink" : "text-ink-soft/60"}`}>{date.getUTCDate()}</div>
               {closed.closed && <div className="text-[10px] text-ink-soft mt-0.5 truncate">{closed.label}</div>}
+              {!closed.closed && blackoutLabel && (
+                <div className="text-[10px] text-ink-soft mt-0.5 truncate">Black out period</div>
+              )}
 
               <div className="mt-1 space-y-0.5">
                 {data?.leave.slice(0, 3).map((l, i) => (

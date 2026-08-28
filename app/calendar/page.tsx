@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { getMonthCalendarData } from "@/lib/calendar";
+import { getBlackoutPeriods } from "@/lib/business-rules";
 import AppNav from "@/components/app-nav";
 import MonthGrid from "@/components/calendar/month-grid";
 
@@ -24,6 +25,12 @@ export default async function CalendarPage({
   const month = searchParams.month ? parseInt(searchParams.month, 10) : now.getUTCMonth() + 1;
 
   const { byDate, extraClosedDates } = await getMonthCalendarData(year, month);
+
+  const blackoutPeriods = [
+    ...getBlackoutPeriods(year - 1),
+    ...getBlackoutPeriods(year),
+    ...getBlackoutPeriods(year + 1),
+  ];
 
   const prev = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
   const next = month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
@@ -68,9 +75,19 @@ export default async function CalendarPage({
             <span className="w-3 h-3 rounded bg-[repeating-linear-gradient(45deg,rgba(21,37,34,0.15),rgba(21,37,34,0.15)_3px,transparent_3px,transparent_6px)] inline-block" />
             Closed
           </span>
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded bg-ink-soft/25 inline-block" />
+            Black out period
+          </span>
         </div>
 
-        <MonthGrid year={year} month={month} byDate={byDate} extraClosedDates={extraClosedDates} />
+        <MonthGrid
+          year={year}
+          month={month}
+          byDate={byDate}
+          extraClosedDates={extraClosedDates}
+          blackoutPeriods={blackoutPeriods}
+        />
       </main>
     </div>
   );

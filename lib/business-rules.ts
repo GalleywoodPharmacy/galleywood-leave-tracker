@@ -347,4 +347,34 @@ export function calculateStatutoryAnnualHours(
   return Math.max(0, Math.round((proRatedEntitlement - closureHoursOnWorkingDays) * 10) / 10);
 }
 
+export type BlackoutPeriod = { startDateKey: string; endDateKeyInclusive: string; label: string };
+
+export function getBlackoutPeriods(year: number): BlackoutPeriod[] {
+  const key = (d: Date) => d.toISOString().slice(0, 10);
+
+  const christmasStart = new Date(Date.UTC(year, 11, 11));
+  const christmasEnd = new Date(Date.UTC(year, 11, 24));
+
+  const easter = easterSunday(year);
+  const goodFriday = addDays(easter, -2);
+  const easterBlackoutEnd = addDays(goodFriday, -1);
+  const easterBlackoutStart = addDays(easterBlackoutEnd, -6);
+
+  return [
+    { startDateKey: key(christmasStart), endDateKeyInclusive: key(christmasEnd), label: "Black out period (pre-Christmas)" },
+    {
+      startDateKey: key(easterBlackoutStart),
+      endDateKeyInclusive: key(easterBlackoutEnd),
+      label: "Black out period (pre-Easter)",
+    },
+  ];
+}
+
+export function getBlackoutLabelForDate(dateKey: string, periods: BlackoutPeriod[]): string | null {
+  for (const p of periods) {
+    if (dateKey >= p.startDateKey && dateKey <= p.endDateKeyInclusive) return p.label;
+  }
+  return null;
+}
+
 export { sameDate };
