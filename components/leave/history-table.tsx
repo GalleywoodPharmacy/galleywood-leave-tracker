@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/toast-provider";
 
 type LeaveRequestRow = {
   id: string;
@@ -27,6 +28,7 @@ function formatDate(iso: string) {
 
 export default function HistoryTable({ requests }: { requests: LeaveRequestRow[] }) {
   const router = useRouter();
+  const showToast = useToast();
   const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +47,7 @@ export default function HistoryTable({ requests }: { requests: LeaveRequestRow[]
       setError(data.error ?? "Couldn't withdraw that request.");
       return;
     }
+    showToast("Request withdrawn");
     router.refresh();
   }
 

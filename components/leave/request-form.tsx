@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import DateInput from "@/components/date-input";
+import { useToast } from "@/components/toast-provider";
 
 export default function RequestForm() {
   const router = useRouter();
+  const showToast = useToast();
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -78,6 +80,7 @@ export default function RequestForm() {
     setHours("");
     setHoursTouched(false);
     setNotes("");
+    showToast("Leave request submitted");
     router.refresh();
   }
 

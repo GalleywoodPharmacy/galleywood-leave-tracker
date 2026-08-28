@@ -7,6 +7,7 @@ import { getMonthCalendarData } from "@/lib/calendar";
 import { getBlackoutPeriods } from "@/lib/business-rules";
 import AppNav from "@/components/app-nav";
 import MonthGrid from "@/components/calendar/month-grid";
+import PrintButton from "@/components/calendar/print-button";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -30,6 +31,9 @@ export default async function CalendarPage({
     prisma.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
+  // The visible grid can show a few days from the adjacent year (e.g.
+  // viewing December includes early-January padding days), so blackout
+  // periods are computed for the surrounding years too, not just this one.
   const blackoutPeriods = [
     ...getBlackoutPeriods(year - 1),
     ...getBlackoutPeriods(year),
@@ -40,15 +44,17 @@ export default async function CalendarPage({
   const next = month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
 
   return (
-    <div className="min-h-screen bg-page">
-      <AppNav isManager={session.user.isManager} />
+    <div className="min-h-screen bg-page print:bg-white">
+      <div className="print:hidden">
+        <AppNav isManager={session.user.isManager} />
+      </div>
 
       <main className="p-6 max-w-5xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl text-header">
             {MONTH_NAMES[month - 1]} {year}
           </h1>
-          <div className="flex gap-2 text-sm">
+          <div className="flex gap-2 text-sm print:hidden">
             <Link
               href={`/calendar?year=${prev.year}&month=${prev.month}`}
               className="rounded-lg border border-line px-3 py-1.5 hover:bg-card"
@@ -67,10 +73,11 @@ export default async function CalendarPage({
             >
               Next →
             </Link>
+            <PrintButton />
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-4 text-xs text-ink-soft">
+        <div className="flex flex-wrap gap-4 text-xs text-ink-soft print:hidden">
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-pending/40 inline-block" /> Requested</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-primary/40 inline-block" /> Approved</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-declined/40 inline-block" /> Declined</span>
@@ -86,7 +93,7 @@ export default async function CalendarPage({
           </span>
         </div>
 
-        <p className="text-xs text-ink-soft">
+        <p className="text-xs text-ink-soft print:hidden">
           Click your own leave (or anyone's, if you're a manager) to add or change who's covering it. Approved leave
           shows a small box underneath with the cover status.
         </p>

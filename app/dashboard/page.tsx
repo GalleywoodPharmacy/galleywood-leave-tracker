@@ -7,6 +7,7 @@ import AppNav from "@/components/app-nav";
 import YearSelect from "@/components/year-select";
 import BalanceCards from "@/components/leave/balance-cards";
 import BankHolidayBreakdown from "@/components/leave/bank-holiday-breakdown";
+import UpcomingLeaveCard from "@/components/leave/upcoming-leave-card";
 import RequestForm from "@/components/leave/request-form";
 import HistoryTable from "@/components/leave/history-table";
 
@@ -24,12 +25,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
     yearOptions.sort((a, b) => a - b);
   }
 
-  const [balance, bankHolidayItems, requests] = await Promise.all([
+  const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+  const [balance, bankHolidayItems, requests, nextLeave] = await Promise.all([
     getBalance(session.user.id, selectedYear),
     getBankHolidayBreakdownForUser(session.user.id, selectedYear),
     prisma.leaveRequest.findMany({
       where: { userId: session.user.id },
       orderBy: { submittedAt: "desc" },
+    }),
+    prisma.leaveRequest.findFirst({
+      where: { userId: session.user.id, status: "approved", endDate: { gte: todayUTC } },
+      orderBy: { startDate: "asc" },
     }),
   ]);
 
@@ -57,6 +64,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
             <YearSelect years={yearOptions} selectedYear={selectedYear} basePath="/dashboard" />
           </div>
         </div>
+
+        <UpcomingLeaveCard
+          leave={
+            nextLeave
+              ? { startDate: nextLeave.startDate.toISOString(), endDate: nextLeave.endDate.toISOString(), hours: nextLeave.hours }
+              : null
+          }
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
           <BalanceCards balance={balance} year={selectedYear} />

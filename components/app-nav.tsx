@@ -3,19 +3,27 @@
 import { useState } from "react";
 import Link from "next/link";
 import SignOutButton from "./sign-out-button";
+import { HomeIcon, CalendarIcon, UmbrellaIcon, UserIcon, PeopleIcon, SettingsIcon, HelpIcon } from "./nav-icons";
 
 const LINKS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/calendar", label: "Calendar" },
-  { href: "/coverage", label: "Coverage" },
-  { href: "/account", label: "Account" },
+  { href: "/dashboard", label: "Dashboard", icon: HomeIcon },
+  { href: "/calendar", label: "Calendar", icon: CalendarIcon },
+  { href: "/coverage", label: "Coverage", icon: UmbrellaIcon },
+  { href: "/account", label: "Account", icon: UserIcon },
 ];
+
+const HELP_LINK = { href: "/help", label: "Help", icon: HelpIcon };
 
 export default function AppNav({ isManager }: { isManager: boolean }) {
   const [open, setOpen] = useState(false);
   const links = isManager
-    ? [...LINKS, { href: "/team", label: "Team & Approvals" }, { href: "/settings", label: "Settings" }]
-    : LINKS;
+    ? [
+        ...LINKS,
+        { href: "/team", label: "Team & Approvals", icon: PeopleIcon },
+        { href: "/settings", label: "Settings", icon: SettingsIcon },
+        HELP_LINK,
+      ]
+    : [...LINKS, HELP_LINK];
 
   return (
     <header className="bg-header text-white">
@@ -25,7 +33,12 @@ export default function AppNav({ isManager }: { isManager: boolean }) {
         {/* Desktop nav — hidden below md, everything fits on one line above that */}
         <nav className="hidden md:flex items-center gap-4 text-sm">
           {links.map((link) => (
-            <Link key={link.href} href={link.href} className="text-white/85 hover:text-white transition-colors">
+            <Link
+              key={link.href}
+              href={link.href}
+              className="flex items-center gap-1.5 text-white/85 hover:text-white transition-colors"
+            >
+              <link.icon />
               {link.label}
             </Link>
           ))}
@@ -57,8 +70,9 @@ export default function AppNav({ isManager }: { isManager: boolean }) {
               key={link.href}
               href={link.href}
               onClick={() => setOpen(false)}
-              className="py-2 text-white/85 hover:text-white transition-colors text-sm"
+              className="flex items-center gap-2 py-2 text-white/85 hover:text-white transition-colors text-sm"
             >
+              <link.icon />
               {link.label}
             </Link>
           ))}

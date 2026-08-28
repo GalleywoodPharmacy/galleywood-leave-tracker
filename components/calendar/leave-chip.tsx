@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/toast-provider";
 import type { CoverInfo } from "@/lib/cover";
 
 function fmtShort(dateKey: string) {
@@ -38,6 +39,7 @@ export default function LeaveChip({
   staffList: { id: string; name: string }[];
 }) {
   const router = useRouter();
+  const showToast = useToast();
   const isMultiDay = periodStart !== periodEnd;
   const isApproved = status === "approved";
 
@@ -75,6 +77,7 @@ export default function LeaveChip({
       return;
     }
     setOpen(false);
+    showToast(coverPayload ? "Cover updated" : "Cover removed");
     router.refresh();
   }
 

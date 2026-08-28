@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/toast-provider";
 
 export type NeedsCoverageItem = { requestId: string; dateKey: string; name: string };
 
@@ -15,6 +16,7 @@ function fmt(key: string) {
 
 export default function NeedsCoverageList({ items }: { items: NeedsCoverageItem[] }) {
   const router = useRouter();
+  const showToast = useToast();
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,6 +40,7 @@ export default function NeedsCoverageList({ items }: { items: NeedsCoverageItem[
       setError(data.error ?? "Couldn't cover that day.");
       return;
     }
+    showToast("Marked as covering");
     router.refresh();
   }
 

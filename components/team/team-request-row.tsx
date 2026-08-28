@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import DateInput from "@/components/date-input";
+import { useToast } from "@/components/toast-provider";
 
 export type TeamRequest = {
   id: string;
@@ -34,6 +35,7 @@ function toInputDate(iso: string) {
 
 export default function TeamRequestRow({ request, zebra }: { request: TeamRequest; zebra: boolean }) {
   const router = useRouter();
+  const showToast = useToast();
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +58,13 @@ export default function TeamRequestRow({ request, zebra }: { request: TeamReques
     if (!res.ok) {
       setError(data.error ?? "That didn't work.");
       return false;
+    }
+    if (body.action === "decide") {
+      showToast(body.decision === "approved" ? "Request approved" : "Request declined");
+    } else if (body.action === "cancel") {
+      showToast("Request cancelled");
+    } else if (body.action === "edit") {
+      showToast("Changes saved");
     }
     router.refresh();
     return true;
