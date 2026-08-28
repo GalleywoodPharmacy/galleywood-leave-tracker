@@ -7,7 +7,12 @@ const STATUS_CHIP: Record<string, string> = {
   denied: "bg-declined/15 text-declined",
 };
 
-const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+/** Day-of-week index with Monday = 0 ... Sunday = 6, instead of JS's native Sunday = 0. */
+function mondayFirstIndex(date: Date): number {
+  return (date.getUTCDay() + 6) % 7;
+}
 
 export default function MonthGrid({
   year,
@@ -25,9 +30,9 @@ export default function MonthGrid({
   const monthStart = new Date(Date.UTC(year, month - 1, 1));
   const monthEnd = new Date(Date.UTC(year, month, 0));
   const gridStart = new Date(monthStart);
-  gridStart.setUTCDate(gridStart.getUTCDate() - gridStart.getUTCDay());
+  gridStart.setUTCDate(gridStart.getUTCDate() - mondayFirstIndex(monthStart));
   const gridEnd = new Date(monthEnd);
-  gridEnd.setUTCDate(gridEnd.getUTCDate() + (6 - gridEnd.getUTCDay()));
+  gridEnd.setUTCDate(gridEnd.getUTCDate() + (6 - mondayFirstIndex(monthEnd)));
 
   const days: Date[] = [];
   for (let d = new Date(gridStart); d.getTime() <= gridEnd.getTime(); d.setUTCDate(d.getUTCDate() + 1)) {
