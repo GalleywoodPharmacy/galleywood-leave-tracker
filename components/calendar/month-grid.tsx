@@ -96,6 +96,9 @@ export default function MonthGrid({
                     canEdit={l.userId === currentUserId || isManager}
                     statusClass={STATUS_CHIP[l.status]}
                     dateLabel={formatDayLabel(date)}
+                    dayKey={key}
+                    periodStart={l.periodStart}
+                    periodEnd={l.periodEnd}
                   />
                 ))}
                 {data && data.leave.length > 3 && (

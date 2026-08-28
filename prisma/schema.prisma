@@ -63,7 +63,13 @@ model LeaveRequest {
   // outside the staff system entirely (a locum, family cover, etc.) rather
   // than a real account — the Coverage feature elsewhere in the app only
   // supports assigning actual staff accounts, so this fills that gap.
+  // This is the default for the whole leave period.
   coverName String?
+
+  // Per-day overrides ("YYYY-MM-DD" -> name), for when someone sets cover
+  // for just one day within a multi-day leave rather than the whole period.
+  // A day present here takes priority over coverName for that specific date.
+  coverNameByDate Json?
 
   status LeaveStatus @default(pending)
 

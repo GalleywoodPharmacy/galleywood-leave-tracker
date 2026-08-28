@@ -6,7 +6,12 @@ import { prisma } from "@/lib/prisma";
 import { sendLeaveWithdrawnEmail } from "@/lib/email";
 
 const withdrawSchema = z.object({ action: z.literal("withdraw") });
-const setCoverNameSchema = z.object({ action: z.literal("set-cover-name"), coverName: z.string().max(200) });
+const setCoverNameSchema = z.object({
+  action: z.literal("set-cover-name"),
+  coverName: z.string().max(200),
+  scope: z.enum(["day", "period"]),
+  date: z.string().optional(), // "YYYY-MM-DD", required when scope is "day"
+});
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -18,12 +23,33 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (!existing) return NextResponse.json({ error: "Request not found" }, { status: 404 });
 
   // Set/change who's covering — the request's own owner, or any manager, at
-  // any point (not just when the request was first submitted).
+  // any point (not just when the request was first submitted). "day" scope
+  // sets an override for just that one date within the leave period; "period"
+  // scope sets the default that applies to every day without its own override.
   const setCover = setCoverNameSchema.safeParse(body);
   if (setCover.success) {
     if (existing.userId !== session.user.id && !session.user.isManager) {
       return NextResponse.json({ error: "Not allowed" }, { status: 403 });
     }
+
+    if (setCover.data.scope === "day") {
+      if (!setCover.data.date) {
+        return NextResponse.json({ error: "Missing date for a single-day cover change" }, { status: 400 });
+      }
+      const currentOverrides = (existing.coverNameByDate as Record<string, string> | null) ?? {};
+      const newOverrides = { ...currentOverrides };
+      if (setCover.data.coverName) {
+        newOverrides[setCover.data.date] = setCover.data.coverName;
+      } else {
+        delete newOverrides[setCover.data.date];
+      }
+      const updated = await prisma.leaveRequest.update({
+        where: { id: params.id },
+        data: { coverNameByDate: newOverrides },
+      });
+      return NextResponse.json({ request: updated });
+    }
+
     const updated = await prisma.leaveRequest.update({
       where: { id: params.id },
       data: { coverName: setCover.data.coverName || null },

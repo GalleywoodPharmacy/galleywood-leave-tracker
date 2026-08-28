@@ -6,7 +6,9 @@ export type DayChipLeave = {
   userId: string;
   name: string;
   status: "pending" | "approved" | "denied";
-  coverName: string | null;
+  coverName: string | null; // effective for THIS day: a day-specific override, else the whole-period default
+  periodStart: string; // "YYYY-MM-DD" — the leave's overall start, for the "whole period" choice/label
+  periodEnd: string; // "YYYY-MM-DD" — the leave's overall end
 };
 export type DayData = {
   key: string;
@@ -52,16 +54,24 @@ export async function getMonthCalendarData(year: number, month: number) {
   };
 
   for (const r of leaveRequests) {
+    const periodStart = dayKey(r.startDate);
+    const periodEnd = dayKey(r.endDate);
+    const overrides = (r.coverNameByDate as Record<string, string> | null) ?? {};
+
     const start = r.startDate.getTime() > monthStart.getTime() ? r.startDate : monthStart;
     const end = r.endDate.getTime() < monthEnd.getTime() ? r.endDate : monthEnd;
     let cursor = new Date(start);
     while (cursor.getTime() <= end.getTime()) {
+      const dk = dayKey(cursor);
+      const effectiveCoverName = overrides[dk] ?? r.coverName ?? null;
       ensure(cursor).leave.push({
         requestId: r.id,
         userId: r.userId,
         name: r.user.name,
         status: r.status as "pending" | "approved" | "denied",
-        coverName: r.coverName,
+        coverName: effectiveCoverName,
+        periodStart,
+        periodEnd,
       });
       cursor = addDays(cursor, 1);
     }
