@@ -10,7 +10,6 @@ export type TeamRequest = {
   endDate: string;
   hours: number;
   notes: string | null;
-  coverName: string | null;
   status: "pending" | "approved" | "denied" | "cancelled";
   submittedAt: string;
   decidedAt: string | null;
@@ -43,7 +42,6 @@ export default function TeamRequestRow({ request, zebra }: { request: TeamReques
   const [endDate, setEndDate] = useState(toInputDate(request.endDate));
   const [hours, setHours] = useState(String(request.hours));
   const [notes, setNotes] = useState(request.notes ?? "");
-  const [coverName, setCoverName] = useState(request.coverName ?? "");
 
   async function call(body: Record<string, unknown>) {
     setError(null);
@@ -98,7 +96,6 @@ export default function TeamRequestRow({ request, zebra }: { request: TeamReques
                     endDate,
                     hours: parseFloat(hours),
                     notes,
-                    coverName,
                   });
                   if (ok) setEditing(false);
                 }}
@@ -121,14 +118,6 @@ export default function TeamRequestRow({ request, zebra }: { request: TeamReques
                 className="w-full rounded-lg border border-line px-2 py-1.5 text-sm"
               />
             </div>
-            <div className="col-span-2 sm:col-span-4">
-              <label className="block text-xs text-ink-soft mb-1">Covered by (if not a staff account)</label>
-              <input
-                value={coverName}
-                onChange={(e) => setCoverName(e.target.value)}
-                className="w-full rounded-lg border border-line px-2 py-1.5 text-sm"
-              />
-            </div>
           </div>
           {error && <p className="text-sm text-declined mt-2">{error}</p>}
         </td>
@@ -147,7 +136,6 @@ export default function TeamRequestRow({ request, zebra }: { request: TeamReques
       <td className="px-5 py-3 border-t border-line font-mono">{request.hours}h</td>
       <td className="px-5 py-3 border-t border-line text-xs text-ink-soft max-w-[16rem] truncate">
         {request.notes || "—"}
-        {request.coverName && <div className="text-ink not-italic">Covered by {request.coverName}</div>}
       </td>
       <td className="px-5 py-3 border-t border-line">
         <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[request.status]}`}>

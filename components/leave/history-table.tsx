@@ -9,7 +9,6 @@ type LeaveRequestRow = {
   endDate: string;
   hours: number;
   notes: string | null;
-  coverName: string | null;
   status: "pending" | "approved" | "denied" | "cancelled";
   submittedAt: string;
 };
@@ -78,7 +77,6 @@ export default function HistoryTable({ requests }: { requests: LeaveRequestRow[]
             <tr key={r.id} className={i % 2 === 1 ? "bg-card/40" : ""}>
               <td className="px-5 py-3 border-t border-line font-mono text-xs">
                 {formatDate(r.startDate)} – {formatDate(r.endDate)}
-                {r.coverName && <div className="text-ink-soft font-sans mt-0.5">Covered by {r.coverName}</div>}
               </td>
               <td className="px-5 py-3 border-t border-line font-mono">{r.hours}h</td>
               <td className="px-5 py-3 border-t border-line">
