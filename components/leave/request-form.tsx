@@ -85,7 +85,7 @@ export default function RequestForm() {
     <form onSubmit={handleSubmit} className="bg-white border border-line rounded-xl p-5 space-y-4">
       <h2 className="text-header text-lg">Request leave</h2>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-3">
         <div>
           <label className="block text-sm font-medium text-ink mb-1">Start date</label>
           <DateInput required value={startDate} onChange={setStartDate} />

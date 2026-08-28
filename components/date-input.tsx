@@ -76,18 +76,22 @@ export default function DateInput({
         max={31}
         value={day}
         onChange={(e) => update(e.target.value.slice(0, 2), month, year)}
-        className="w-12 rounded-lg border border-line bg-white px-1.5 py-1.5 text-sm font-mono text-center focus:outline-none focus:ring-2 focus:ring-accent"
+        className="w-12 rounded-lg border border-line bg-white px-1.5 py-1.5 text-sm font-mono text-center text-ink placeholder:text-ink-soft focus:outline-none focus:ring-2 focus:ring-accent"
         required={required}
       />
       <select
         value={month}
         onChange={(e) => update(day, e.target.value, year)}
-        className="w-[4.5rem] rounded-lg border border-line bg-white px-1 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+        className={`w-[4.5rem] rounded-lg border border-line bg-white px-1 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent ${
+          month === "" ? "text-ink-soft" : "text-ink"
+        }`}
         required={required}
       >
-        <option value="">Month</option>
+        <option value="" className="text-ink-soft">
+          Month
+        </option>
         {MONTHS.map((m, i) => (
-          <option key={m} value={i}>
+          <option key={m} value={i} className="text-ink">
             {m}
           </option>
         ))}
@@ -98,7 +102,7 @@ export default function DateInput({
         placeholder="YYYY"
         value={year}
         onChange={(e) => update(day, month, e.target.value.slice(0, 4))}
-        className="w-16 rounded-lg border border-line bg-white px-1.5 py-1.5 text-sm font-mono text-center focus:outline-none focus:ring-2 focus:ring-accent"
+        className="w-16 rounded-lg border border-line bg-white px-1.5 py-1.5 text-sm font-mono text-center text-ink placeholder:text-ink-soft focus:outline-none focus:ring-2 focus:ring-accent"
         required={required}
       />
     </div>
