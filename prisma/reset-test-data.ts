@@ -23,13 +23,11 @@ async function main() {
   }
 
   const deletedLeave = await prisma.leaveRequest.deleteMany({});
-  const deletedCoverage = await prisma.coverageAssignment.deleteMany({});
   const deletedUsers = await prisma.user.deleteMany({ where: { id: { not: keepUser.id } } });
 
   console.log(`Kept: ${keepUser.name} <${keepUser.email}>`);
   console.log(`Deleted ${deletedUsers.count} other staff account(s).`);
   console.log(`Deleted ${deletedLeave.count} leave request(s).`);
-  console.log(`Deleted ${deletedCoverage.count} coverage assignment(s).`);
 }
 
 main()

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { CoverInfo } from "@/lib/cover";
 
 function fmtShort(dateKey: string) {
   return new Date(dateKey + "T00:00:00.000Z").toLocaleDateString("en-GB", {
@@ -15,50 +16,57 @@ export default function LeaveChip({
   requestId,
   name,
   status,
-  coverName,
+  cover,
   canEdit,
   statusClass,
   dateLabel,
   dayKey,
   periodStart,
   periodEnd,
+  staffList,
 }: {
   requestId: string;
   name: string;
   status: "pending" | "approved" | "denied";
-  coverName: string | null;
+  cover: CoverInfo | null;
   canEdit: boolean;
   statusClass: string;
   dateLabel: string;
   dayKey: string;
   periodStart: string;
   periodEnd: string;
+  staffList: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const isMultiDay = periodStart !== periodEnd;
+  const isApproved = status === "approved";
 
   const [open, setOpen] = useState(false);
   const [scope, setScope] = useState<"day" | "period" | null>(null);
-  const [value, setValue] = useState(coverName ?? "");
+  const [mode, setMode] = useState<"staff" | "external">(cover?.type === "external" ? "external" : "staff");
+  const [staffUserId, setStaffUserId] = useState(cover?.type === "staff" ? cover.userId : "");
+  const [externalName, setExternalName] = useState(cover?.type === "external" ? cover.name : "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function openModal() {
     if (!canEdit) return;
-    setValue(coverName ?? "");
+    setMode(cover?.type === "external" ? "external" : "staff");
+    setStaffUserId(cover?.type === "staff" ? cover.userId : "");
+    setExternalName(cover?.type === "external" ? cover.name : "");
     setScope(isMultiDay ? null : "period");
     setError(null);
     setOpen(true);
   }
 
-  async function save() {
+  async function submit(coverPayload: { type: "staff"; userId: string } | { type: "external"; name: string } | null) {
     if (!scope) return;
     setSaving(true);
     setError(null);
     const res = await fetch(`/api/leave/${requestId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "set-cover-name", coverName: value, scope, date: dayKey }),
+      body: JSON.stringify({ action: "set-cover", scope, date: dayKey, cover: coverPayload }),
     });
     setSaving(false);
     if (!res.ok) {
@@ -70,24 +78,43 @@ export default function LeaveChip({
     router.refresh();
   }
 
+  function save() {
+    if (mode === "staff") {
+      if (!staffUserId) {
+        setError("Pick a colleague.");
+        return;
+      }
+      submit({ type: "staff", userId: staffUserId });
+    } else {
+      if (!externalName.trim()) {
+        setError("Enter a name.");
+        return;
+      }
+      submit({ type: "external", name: externalName.trim() });
+    }
+  }
+
+  const coverBoxClass = !cover
+    ? "bg-pending/10 text-pending border border-dashed border-pending/50"
+    : cover.type === "staff"
+      ? "bg-coverage/20 text-coverage"
+      : "bg-accent/20 text-header";
+
   return (
     <>
       <div
         onClick={openModal}
-        className={`truncate rounded px-1 py-0.5 ${statusClass} ${
-          canEdit ? "cursor-pointer hover:ring-1 hover:ring-primary/50" : ""
-        }`}
-        title={canEdit ? "Click to add who's covering" : `${name} (${status})`}
+        className={`rounded overflow-hidden ${canEdit ? "cursor-pointer hover:ring-1 hover:ring-primary/50" : ""}`}
       >
-        {name.split(" ")[0]}
-      </div>
-      {coverName && (
-        <div className="ml-1 pl-1.5 border-l-2 border-coverage/40 mt-0.5">
-          <div className="text-[9px] text-coverage truncate leading-tight" title={`Covered by ${coverName}`}>
-            {coverName}
-          </div>
+        <div className={`truncate px-1 py-0.5 ${statusClass}`} title={canEdit ? "Click to manage cover" : `${name} (${status})`}>
+          {name.split(" ")[0]}
         </div>
-      )}
+        {isApproved && (
+          <div className={`truncate px-1 py-0.5 text-[9px] leading-tight ${coverBoxClass}`} title={cover ? `Covered by ${cover.name}` : "No cover yet"}>
+            {cover ? cover.name.split(" ")[0] : "No cover"}
+          </div>
+        )}
+      </div>
 
       {open && (
         <div
@@ -125,18 +152,52 @@ export default function LeaveChip({
                 <p className="text-xs text-ink-soft mb-3">
                   {scope === "day" ? dateLabel : `Whole period: ${fmtShort(periodStart)} – ${fmtShort(periodEnd)}`}
                 </p>
-                <input
-                  autoFocus
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  placeholder="Name"
-                  className="w-full rounded-lg border border-line px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-accent"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") save();
-                    if (e.key === "Escape") setOpen(false);
-                  }}
-                />
+
+                <div className="flex gap-1 mb-3 text-xs">
+                  <button
+                    onClick={() => setMode("staff")}
+                    className={`flex-1 rounded-lg py-1.5 border ${mode === "staff" ? "bg-primary text-white border-primary" : "border-line hover:bg-card"}`}
+                  >
+                    Colleague
+                  </button>
+                  <button
+                    onClick={() => setMode("external")}
+                    className={`flex-1 rounded-lg py-1.5 border ${mode === "external" ? "bg-primary text-white border-primary" : "border-line hover:bg-card"}`}
+                  >
+                    Someone else
+                  </button>
+                </div>
+
+                {mode === "staff" ? (
+                  <select
+                    autoFocus
+                    value={staffUserId}
+                    onChange={(e) => setStaffUserId(e.target.value)}
+                    className="w-full rounded-lg border border-line px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-accent"
+                  >
+                    <option value="">Choose…</option>
+                    {staffList.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    autoFocus
+                    value={externalName}
+                    onChange={(e) => setExternalName(e.target.value)}
+                    placeholder="Name"
+                    className="w-full rounded-lg border border-line px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-accent"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") save();
+                      if (e.key === "Escape") setOpen(false);
+                    }}
+                  />
+                )}
+
                 {error && <p className="text-xs text-declined mb-2">{error}</p>}
+
                 <div className="flex gap-2">
                   <button
                     disabled={saving}
@@ -152,6 +213,15 @@ export default function LeaveChip({
                     {isMultiDay ? "Back" : "Cancel"}
                   </button>
                 </div>
+                {cover && (
+                  <button
+                    disabled={saving}
+                    onClick={() => submit(null)}
+                    className="w-full text-xs text-declined mt-2 hover:underline disabled:opacity-60"
+                  >
+                    Remove cover
+                  </button>
+                )}
               </>
             )}
           </div>

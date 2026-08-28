@@ -4,13 +4,22 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendLeaveWithdrawnEmail } from "@/lib/email";
+import type { CoverInfo } from "@/lib/cover";
 
 const withdrawSchema = z.object({ action: z.literal("withdraw") });
-const setCoverNameSchema = z.object({
-  action: z.literal("set-cover-name"),
-  coverName: z.string().max(200),
+
+const coverInputSchema = z
+  .union([
+    z.object({ type: z.literal("staff"), userId: z.string() }),
+    z.object({ type: z.literal("external"), name: z.string().min(1).max(200) }),
+  ])
+  .nullable();
+
+const setCoverSchema = z.object({
+  action: z.literal("set-cover"),
   scope: z.enum(["day", "period"]),
-  date: z.string().optional(), // "YYYY-MM-DD", required when scope is "day"
+  date: z.string().optional(),
+  cover: coverInputSchema,
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -22,24 +31,34 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const existing = await prisma.leaveRequest.findUnique({ where: { id: params.id } });
   if (!existing) return NextResponse.json({ error: "Request not found" }, { status: 404 });
 
-  // Set/change who's covering — the request's own owner, or any manager, at
-  // any point (not just when the request was first submitted). "day" scope
-  // sets an override for just that one date within the leave period; "period"
-  // scope sets the default that applies to every day without its own override.
-  const setCover = setCoverNameSchema.safeParse(body);
+  const setCover = setCoverSchema.safeParse(body);
   if (setCover.success) {
     if (existing.userId !== session.user.id && !session.user.isManager) {
       return NextResponse.json({ error: "Not allowed" }, { status: 403 });
+    }
+
+    let resolvedCover: CoverInfo | null = null;
+    if (setCover.data.cover) {
+      if (setCover.data.cover.type === "staff") {
+        const userId = setCover.data.cover.userId === "self" ? session.user.id : setCover.data.cover.userId;
+        const staffUser = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true } });
+        if (!staffUser) {
+          return NextResponse.json({ error: "That staff member wasn't found." }, { status: 400 });
+        }
+        resolvedCover = { type: "staff", userId: staffUser.id, name: staffUser.name };
+      } else {
+        resolvedCover = { type: "external", name: setCover.data.cover.name };
+      }
     }
 
     if (setCover.data.scope === "day") {
       if (!setCover.data.date) {
         return NextResponse.json({ error: "Missing date for a single-day cover change" }, { status: 400 });
       }
-      const currentOverrides = (existing.coverNameByDate as Record<string, string> | null) ?? {};
+      const currentOverrides = (existing.coverNameByDate as Record<string, CoverInfo> | null) ?? {};
       const newOverrides = { ...currentOverrides };
-      if (setCover.data.coverName) {
-        newOverrides[setCover.data.date] = setCover.data.coverName;
+      if (resolvedCover) {
+        newOverrides[setCover.data.date] = resolvedCover;
       } else {
         delete newOverrides[setCover.data.date];
       }
@@ -52,7 +71,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     const updated = await prisma.leaveRequest.update({
       where: { id: params.id },
-      data: { coverName: setCover.data.coverName || null },
+      data: { coverName: resolvedCover },
     });
     return NextResponse.json({ request: updated });
   }

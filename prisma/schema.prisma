@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -24,26 +24,17 @@ model User {
 
   isManager Boolean @default(false)
 
-  // Annual leave allowance in hours — the only leave type this app tracks.
   allowanceAnnualHours Float @default(200)
 
-  // When this person started (or will start). If set, their entitlement for
-  // that calendar year is pro-rated based on days remaining in the year from
-  // this date, and only bank holidays on/after it count against them. Left
-  // null for staff whose first year predates this feature — they get a full
-  // year's entitlement as before. From their second year onward, entitlement
-  // is automatically full regardless of this field.
   startDate DateTime? @db.Date
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  leaveRequests       LeaveRequest[]        @relation("UserLeaveRequests")
-  decidedRequests     LeaveRequest[]        @relation("DecidedByUser")
-  coverageAssignments CoverageAssignment[]  @relation("UserCoverage")
-  coverageCreated     CoverageAssignment[]  @relation("CoverageCreatedBy")
-  loginTokens         LoginToken[]
-  rota                StaffRota?
+  leaveRequests   LeaveRequest[] @relation("UserLeaveRequests")
+  decidedRequests LeaveRequest[] @relation("DecidedByUser")
+  loginTokens     LoginToken[]
+  rota            StaffRota?
 
   @@map("users")
 }
@@ -59,16 +50,8 @@ model LeaveRequest {
   hours Float
   notes String?
 
-  // Free-text name of whoever's covering this leave, when that's someone
-  // outside the staff system entirely (a locum, family cover, etc.) rather
-  // than a real account — the Coverage feature elsewhere in the app only
-  // supports assigning actual staff accounts, so this fills that gap.
-  // This is the default for the whole leave period.
-  coverName String?
+  coverName Json?
 
-  // Per-day overrides ("YYYY-MM-DD" -> name), for when someone sets cover
-  // for just one day within a multi-day leave rather than the whole period.
-  // A day present here takes priority over coverName for that specific date.
   coverNameByDate Json?
 
   status LeaveStatus @default(pending)
@@ -82,23 +65,6 @@ model LeaveRequest {
   @@index([status])
   @@index([startDate, endDate])
   @@map("leave_requests")
-}
-
-model CoverageAssignment {
-  id     String   @id @default(cuid())
-  date   DateTime @db.Date
-
-  userId String
-  user   User @relation("UserCoverage", fields: [userId], references: [id], onDelete: Cascade)
-
-  createdById String
-  createdBy   User @relation("CoverageCreatedBy", fields: [createdById], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@unique([date, userId])
-  @@index([date])
-  @@map("coverage_assignments")
 }
 
 model ExtraClosedDate {

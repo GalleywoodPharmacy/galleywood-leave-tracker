@@ -33,7 +33,6 @@ export async function getRotaForUser(userId: string): Promise<WeeklyRota> {
   };
 }
 
-/** This person's start date, if a manager has set one — used to pro-rate their first year's entitlement. */
 async function getStartDateForUser(userId: string): Promise<Date | null> {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { startDate: true } });
   return user?.startDate ?? null;
@@ -53,12 +52,6 @@ export async function computeStatutoryAnnualHoursForUser(userId: string, year: n
   return calculateStatutoryAnnualHours(rota, year, extraClosedDates, startDate);
 }
 
-/**
- * Named breakdown of which closed days (bank holidays / extra closures)
- * reduce this person's allowance in a given year. Leaves out any that
- * happened before their start date, if one is set, and returns nothing at
- * all for a year before they'd started.
- */
 export async function getBankHolidayBreakdownForUser(userId: string, year: number): Promise<BankHolidayBreakdownItem[]> {
   const [rota, extraClosedDates, startDate] = await Promise.all([
     getRotaForUser(userId),
@@ -81,24 +74,10 @@ export type LeaveBalance = {
 
 const STANDARD_DAY_HOURS = 8;
 
-/**
- * A person's leave balance for a specific calendar year. The allowance is
- * computed live from their current rota + that year's actual bank holidays
- * (5.6 weeks minus bank-holiday hours that fall on their working days) —
- * it's no longer a manually-saved flat number, so 2026 and 2027 can (and
- * usually will) show slightly different allowances automatically, since
- * bank holidays fall on different weekdays each year. If they have a start
- * date set and it falls within the requested year, their entitlement for
- * that year is pro-rated automatically.
- *
- * A request "belongs" to the calendar year its start date falls in — a
- * request starting 2 Jul 2027 counts against 2027's balance, regardless of
- * what year it was submitted or approved in.
- *
- * excludeRequestId: when a manager amends an already-approved request's own
- * hours/dates, its *current* (pre-edit) hours must not count against itself,
- * or shrinking a request would false-positive as "over allowance".
- */
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
 export async function getBalance(userId: string, year: number, excludeRequestId?: string): Promise<LeaveBalance> {
   const yearStart = new Date(Date.UTC(year, 0, 1));
   const yearEnd = new Date(Date.UTC(year, 11, 31));
@@ -118,14 +97,14 @@ export async function getBalance(userId: string, year: number, excludeRequestId?
     getStartDateForUser(userId),
   ]);
 
-  const approvedHours = requests.filter((r) => r.status === "approved").reduce((sum, r) => sum + r.hours, 0);
-  const pendingHours = requests.filter((r) => r.status === "pending").reduce((sum, r) => sum + r.hours, 0);
+  const approvedHours = round1(requests.filter((r) => r.status === "approved").reduce((sum, r) => sum + r.hours, 0));
+  const pendingHours = round1(requests.filter((r) => r.status === "pending").reduce((sum, r) => sum + r.hours, 0));
   const allowanceHours = calculateStatutoryAnnualHours(rota, year, extraClosedDates, startDate);
   const bankHolidayFromDateKey =
     startDate && startDate.getUTCFullYear() === year ? startDate.toISOString().slice(0, 10) : undefined;
   const bankHolidayHours =
     startDate && startDate.getUTCFullYear() > year ? 0 : bankHolidayHoursForRota(rota, year, extraClosedDates, bankHolidayFromDateKey);
-  const remainingHours = allowanceHours - approvedHours - pendingHours;
+  const remainingHours = round1(allowanceHours - approvedHours - pendingHours);
 
   return {
     allowanceHours,
@@ -133,11 +112,10 @@ export async function getBalance(userId: string, year: number, excludeRequestId?
     approvedHours,
     pendingHours,
     remainingHours,
-    remainingDaysApprox: Math.round((remainingHours / STANDARD_DAY_HOURS) * 10) / 10,
+    remainingDaysApprox: round1(remainingHours / STANDARD_DAY_HOURS),
   };
 }
 
-/** All staff, each with their balance for a given year — for the Team & Approvals table. */
 export async function getAllStaffBalances(year: number) {
   const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
   const results = await Promise.all(
@@ -149,12 +127,6 @@ export async function getAllStaffBalances(year: number) {
   return results;
 }
 
-/**
- * All staff with their automatically-calculated annual allowance for each
- * of the given years (current year + however many ahead) — for the
- * Staff & allowances table in Settings. Fully live from each person's rota
- * and start date; there's no manually-saved figure to keep in sync any more.
- */
 export async function getAllStaffAnnualAllowances(years: number[]) {
   const [users, extraClosedDates] = await Promise.all([
     prisma.user.findMany({ orderBy: { name: "asc" }, include: { rota: true } }),
@@ -188,7 +160,6 @@ export async function getAllStaffAnnualAllowances(years: number[]) {
   });
 }
 
-/** All staff with their rota (or the default, if they don't have one set yet) — for Settings. */
 export async function getAllStaffRotas() {
   const users = await prisma.user.findMany({ orderBy: { name: "asc" }, include: { rota: true } });
   return users.map((u) => ({

@@ -10,7 +10,6 @@ const STATUS_CHIP: Record<string, string> = {
 
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-/** Day-of-week index with Monday = 0 ... Sunday = 6, instead of JS's native Sunday = 0. */
 function mondayFirstIndex(date: Date): number {
   return (date.getUTCDay() + 6) % 7;
 }
@@ -27,14 +26,16 @@ export default function MonthGrid({
   blackoutPeriods,
   currentUserId,
   isManager,
+  staffList,
 }: {
   year: number;
-  month: number; // 1-12
+  month: number;
   byDate: Map<string, DayData>;
   extraClosedDates: Map<string, string>;
   blackoutPeriods: BlackoutPeriod[];
   currentUserId: string;
   isManager: boolean;
+  staffList: { id: string; name: string }[];
 }) {
   const monthStart = new Date(Date.UTC(year, month - 1, 1));
   const monthEnd = new Date(Date.UTC(year, month, 0));
@@ -92,23 +93,19 @@ export default function MonthGrid({
                     requestId={l.requestId}
                     name={l.name}
                     status={l.status}
-                    coverName={l.coverName}
+                    cover={l.cover}
                     canEdit={l.userId === currentUserId || isManager}
                     statusClass={STATUS_CHIP[l.status]}
                     dateLabel={formatDayLabel(date)}
                     dayKey={key}
                     periodStart={l.periodStart}
                     periodEnd={l.periodEnd}
+                    staffList={staffList}
                   />
                 ))}
                 {data && data.leave.length > 3 && (
                   <div className="text-[10px] text-ink-soft">+{data.leave.length - 3} more</div>
                 )}
-                {data?.coverage.slice(0, 2).map((name, i) => (
-                  <div key={`c${i}`} className="truncate rounded px-1 py-0.5 bg-coverage/15 text-coverage" title={`${name} covering`}>
-                    ☂ {name.split(" ")[0]}
-                  </div>
-                ))}
               </div>
             </div>
           );

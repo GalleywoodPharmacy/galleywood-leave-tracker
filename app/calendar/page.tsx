@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { getMonthCalendarData } from "@/lib/calendar";
 import { getBlackoutPeriods } from "@/lib/business-rules";
 import AppNav from "@/components/app-nav";
@@ -24,7 +25,10 @@ export default async function CalendarPage({
   const year = searchParams.year ? parseInt(searchParams.year, 10) : now.getUTCFullYear();
   const month = searchParams.month ? parseInt(searchParams.month, 10) : now.getUTCMonth() + 1;
 
-  const { byDate, extraClosedDates } = await getMonthCalendarData(year, month);
+  const [{ byDate, extraClosedDates }, staffList] = await Promise.all([
+    getMonthCalendarData(year, month),
+    prisma.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+  ]);
 
   const blackoutPeriods = [
     ...getBlackoutPeriods(year - 1),
@@ -70,7 +74,9 @@ export default async function CalendarPage({
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-pending/40 inline-block" /> Requested</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-primary/40 inline-block" /> Approved</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-declined/40 inline-block" /> Declined</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-coverage/40 inline-block" /> Covering</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-coverage/40 inline-block" /> Covered (colleague)</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-accent/40 inline-block" /> Covered (other)</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-dashed border-pending/50 bg-pending/10 inline-block" /> No cover yet</span>
           <span className="flex items-center gap-1">
             <span className="w-3 h-3 rounded bg-[repeating-linear-gradient(45deg,rgba(21,37,34,0.15),rgba(21,37,34,0.15)_3px,transparent_3px,transparent_6px)] inline-block" />
             Closed
@@ -82,7 +88,8 @@ export default async function CalendarPage({
         </div>
 
         <p className="text-xs text-ink-soft">
-          Click your own leave (or anyone's, if you're a manager) to add or change who's covering it.
+          Click your own leave (or anyone's, if you're a manager) to add or change who's covering it. Approved leave
+          shows a small box underneath with the cover status.
         </p>
 
         <MonthGrid
@@ -93,6 +100,7 @@ export default async function CalendarPage({
           blackoutPeriods={blackoutPeriods}
           currentUserId={session.user.id}
           isManager={session.user.isManager}
+          staffList={staffList}
         />
       </main>
     </div>

@@ -10,7 +10,7 @@ function CalendarIcon() {
 }
 
 export default function BalanceCards({ balance, year }: { balance: LeaveBalance; year: number }) {
-  const grossAllowance = balance.allowanceHours + balance.bankHolidayHours;
+  const grossAllowance = Math.round((balance.allowanceHours + balance.bankHolidayHours) * 10) / 10;
   const percentRemaining =
     balance.allowanceHours > 0
       ? Math.max(0, Math.min(100, Math.round((balance.remainingHours / balance.allowanceHours) * 100)))

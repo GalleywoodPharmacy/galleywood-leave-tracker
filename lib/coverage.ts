@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { loadExtraClosedDates } from "./leave";
 import { getClosedReason } from "./business-rules";
+import type { CoverInfo } from "./cover";
 
 function todayUTC() {
   const now = new Date();
@@ -15,44 +16,38 @@ function dayKey(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
-export type NeedsCoverageDay = { key: string; date: Date; namesOnLeave: string[] };
+export type NeedsCoverageDay = { requestId: string; dateKey: string; date: Date; name: string };
 
-/** Open days in the next `daysAhead` with approved leave and zero coverage assignments. */
 export async function getNeedsCoverage(daysAhead = 60): Promise<NeedsCoverageDay[]> {
   const start = todayUTC();
   const end = addDays(start, daysAhead);
 
-  const [approvedLeave, coverage, extraClosedDates] = await Promise.all([
+  const [approvedLeave, extraClosedDates] = await Promise.all([
     prisma.leaveRequest.findMany({
       where: { status: "approved", startDate: { lte: end }, endDate: { gte: start } },
       include: { user: { select: { name: true } } },
     }),
-    prisma.coverageAssignment.findMany({ where: { date: { gte: start, lte: end } } }),
     loadExtraClosedDates(),
   ]);
 
-  const leaveByDate = new Map<string, string[]>();
+  const result: NeedsCoverageDay[] = [];
   for (const r of approvedLeave) {
+    const periodCover = (r.coverName as CoverInfo | null) ?? null;
+    const overrides = (r.coverNameByDate as Record<string, CoverInfo> | null) ?? {};
+
     const rangeStart = r.startDate.getTime() > start.getTime() ? r.startDate : start;
     const rangeEnd = r.endDate.getTime() < end.getTime() ? r.endDate : end;
     let cursor = new Date(rangeStart);
     while (cursor.getTime() <= rangeEnd.getTime()) {
-      const key = dayKey(cursor);
-      const arr = leaveByDate.get(key) ?? [];
-      arr.push(r.user.name);
-      leaveByDate.set(key, arr);
+      if (!getClosedReason(cursor, extraClosedDates).closed) {
+        const dk = dayKey(cursor);
+        const cover = overrides[dk] ?? periodCover;
+        if (!cover) {
+          result.push({ requestId: r.id, dateKey: dk, date: new Date(cursor), name: r.user.name });
+        }
+      }
       cursor = addDays(cursor, 1);
     }
-  }
-
-  const coveredDates = new Set(coverage.map((c) => dayKey(c.date)));
-
-  const result: NeedsCoverageDay[] = [];
-  for (const [key, names] of leaveByDate.entries()) {
-    if (coveredDates.has(key)) continue;
-    const date = new Date(key + "T00:00:00.000Z");
-    if (getClosedReason(date, extraClosedDates).closed) continue;
-    result.push({ key, date, namesOnLeave: names });
   }
 
   result.sort((a, b) => a.date.getTime() - b.date.getTime());
