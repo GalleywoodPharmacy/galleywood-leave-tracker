@@ -379,7 +379,7 @@ export function getBlackoutLabelForDate(dateKey: string, periods: BlackoutPeriod
 
 export type SaturdayTeam = { names: string[]; color: "flamingo" | "banana" };
 
-const SATURDAY_TEAM_ANCHOR = "2026-09-29";
+const SATURDAY_TEAM_ANCHOR = "2026-08-29";
 const SATURDAY_TEAM_A = ["Anna", "Kirsty", "Irma", "Chloe"];
 const SATURDAY_TEAM_B = ["Aleks", "Hayley", "Chloe"];
 
