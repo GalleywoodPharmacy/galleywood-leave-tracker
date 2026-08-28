@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendLeaveWithdrawnEmail } from "@/lib/email";
+import { Prisma } from "@prisma/client";
 import type { CoverInfo } from "@/lib/cover";
 
 const withdrawSchema = z.object({ action: z.literal("withdraw") });
@@ -71,7 +72,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     const updated = await prisma.leaveRequest.update({
       where: { id: params.id },
-      data: { coverName: resolvedCover },
+      data: { coverName: resolvedCover === null ? Prisma.DbNull : resolvedCover },
     });
     return NextResponse.json({ request: updated });
   }
