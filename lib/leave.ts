@@ -117,7 +117,7 @@ export async function getBalance(userId: string, year: number, excludeRequestId?
 }
 
 export async function getAllStaffBalances(year: number) {
-  const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
+  const users = await prisma.user.findMany({ where: { isDemo: false }, orderBy: { name: "asc" } });
   const results = await Promise.all(
     users.map(async (u) => ({
       user: { id: u.id, name: u.name, email: u.email, isManager: u.isManager },
@@ -129,7 +129,7 @@ export async function getAllStaffBalances(year: number) {
 
 export async function getAllStaffAnnualAllowances(years: number[]) {
   const [users, extraClosedDates] = await Promise.all([
-    prisma.user.findMany({ orderBy: { name: "asc" }, include: { rota: true } }),
+    prisma.user.findMany({ where: { isDemo: false }, orderBy: { name: "asc" }, include: { rota: true } }),
     loadExtraClosedDates(),
   ]);
 
@@ -161,7 +161,7 @@ export async function getAllStaffAnnualAllowances(years: number[]) {
 }
 
 export async function getAllStaffRotas() {
-  const users = await prisma.user.findMany({ orderBy: { name: "asc" }, include: { rota: true } });
+  const users = await prisma.user.findMany({ where: { isDemo: false }, orderBy: { name: "asc" }, include: { rota: true } });
   return users.map((u) => ({
     userId: u.id,
     name: u.name,

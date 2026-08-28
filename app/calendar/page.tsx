@@ -28,7 +28,7 @@ export default async function CalendarPage({
 
   const [{ byDate, extraClosedDates }, staffList] = await Promise.all([
     getMonthCalendarData(year, month),
-    prisma.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { isDemo: false }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   // The visible grid can show a few days from the adjacent year (e.g.
