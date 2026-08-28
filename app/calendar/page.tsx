@@ -74,9 +74,8 @@ export default async function CalendarPage({
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-pending/40 inline-block" /> Requested</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-primary/40 inline-block" /> Approved</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-declined/40 inline-block" /> Declined</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-coverage/40 inline-block" /> Covered (colleague)</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-accent/40 inline-block" /> Covered (other)</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-dashed border-pending/50 bg-pending/10 inline-block" /> No cover yet</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-coverage/40 inline-block" /> Covered</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded border border-dashed border-red-400 bg-red-50 inline-block" /> No cover yet</span>
           <span className="flex items-center gap-1">
             <span className="w-3 h-3 rounded bg-[repeating-linear-gradient(45deg,rgba(21,37,34,0.15),rgba(21,37,34,0.15)_3px,transparent_3px,transparent_6px)] inline-block" />
             Closed

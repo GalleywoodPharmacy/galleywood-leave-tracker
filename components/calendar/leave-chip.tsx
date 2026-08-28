@@ -95,10 +95,8 @@ export default function LeaveChip({
   }
 
   const coverBoxClass = !cover
-    ? "bg-pending/10 text-pending border border-dashed border-pending/50"
-    : cover.type === "staff"
-      ? "bg-coverage/20 text-coverage"
-      : "bg-accent/20 text-header";
+    ? "bg-red-50 text-red-700 border border-dashed border-red-400"
+    : "bg-coverage/20 text-coverage";
 
   return (
     <>
@@ -111,7 +109,7 @@ export default function LeaveChip({
         </div>
         {isApproved && (
           <div className={`truncate px-1 py-0.5 text-[9px] leading-tight ${coverBoxClass}`} title={cover ? `Covered by ${cover.name}` : "No cover yet"}>
-            {cover ? cover.name.split(" ")[0] : "No cover"}
+            {cover ? cover.name.split(" ")[0] : "No cover yet"}
           </div>
         )}
       </div>

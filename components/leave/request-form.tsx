@@ -13,7 +13,6 @@ export default function RequestForm() {
   const [hoursTouched, setHoursTouched] = useState(false);
   const [computing, setComputing] = useState(false);
   const [notes, setNotes] = useState("");
-  const [coverName, setCoverName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -64,7 +63,6 @@ export default function RequestForm() {
         endDate,
         hours: parsedHours,
         notes: notes || undefined,
-        coverName: coverName || undefined,
       }),
     });
     const data = await res.json();
@@ -80,7 +78,6 @@ export default function RequestForm() {
     setHours("");
     setHoursTouched(false);
     setNotes("");
-    setCoverName("");
     router.refresh();
   }
 
@@ -127,21 +124,6 @@ export default function RequestForm() {
           rows={2}
           className="w-full rounded-lg border border-line px-3 py-2 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent"
         />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-ink mb-1">Covered by (optional)</label>
-        <input
-          type="text"
-          value={coverName}
-          onChange={(e) => setCoverName(e.target.value)}
-          placeholder="e.g. a locum or family member's name"
-          className="w-full rounded-lg border border-line px-3 py-2 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-        />
-        <p className="text-xs text-ink-soft mt-1">
-          For cover arranged with someone who isn't a staff account — use the Coverage page instead to assign an
-          actual member of staff.
-        </p>
       </div>
 
       {error && (
