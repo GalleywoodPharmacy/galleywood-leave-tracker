@@ -34,20 +34,6 @@ function serialize(r: {
     userEmail: r.user.email,
     decidedByName: r.decidedBy?.name ?? null,
   };
-}) {
-  return {
-    id: r.id,
-    startDate: r.startDate.toISOString(),
-    endDate: r.endDate.toISOString(),
-    hours: r.hours,
-    notes: r.notes,
-    status: r.status as "pending" | "approved" | "denied" | "cancelled",
-    submittedAt: r.submittedAt.toISOString(),
-    decidedAt: r.decidedAt ? r.decidedAt.toISOString() : null,
-    userName: r.user.name,
-    userEmail: r.user.email,
-    decidedByName: r.decidedBy?.name ?? null,
-  };
 }
 
 export default async function TeamPage({ searchParams }: { searchParams: { year?: string } }) {
