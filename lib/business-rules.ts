@@ -377,4 +377,19 @@ export function getBlackoutLabelForDate(dateKey: string, periods: BlackoutPeriod
   return null;
 }
 
+export type SaturdayTeam = { names: string[]; color: "flamingo" | "banana" };
+
+const SATURDAY_TEAM_ANCHOR = "2026-09-29";
+const SATURDAY_TEAM_A = ["Anna", "Kirsty", "Irma", "Chloe"];
+const SATURDAY_TEAM_B = ["Aleks", "Hayley", "Chloe"];
+
+export function getSaturdayTeam(date: Date): SaturdayTeam | null {
+  if (date.getUTCDay() !== 6) return null;
+  const anchor = new Date(SATURDAY_TEAM_ANCHOR + "T00:00:00.000Z");
+  const target = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const diffWeeks = Math.round((target.getTime() - anchor.getTime()) / 86400000) / 7;
+  const weeksMod = ((diffWeeks % 2) + 2) % 2;
+  return weeksMod === 0 ? { names: SATURDAY_TEAM_A, color: "flamingo" } : { names: SATURDAY_TEAM_B, color: "banana" };
+}
+
 export { sameDate };

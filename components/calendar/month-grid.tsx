@@ -1,4 +1,4 @@
-import { getClosedReason, getBlackoutLabelForDate, type BlackoutPeriod } from "@/lib/business-rules";
+import { getClosedReason, getBlackoutLabelForDate, getSaturdayTeam, type BlackoutPeriod } from "@/lib/business-rules";
 import type { DayData } from "@/lib/calendar";
 import LeaveChip from "./leave-chip";
 
@@ -8,8 +8,20 @@ const STATUS_CHIP: Record<string, string> = {
   denied: "bg-declined/15 text-declined",
 };
 
+// Real Google Calendar event colours, as requested.
+const SATURDAY_TEAM_COLORS = {
+  flamingo: "bg-[#ffdcd6] text-[#b3392f]",
+  banana: "bg-[#fdedb0] text-[#8a6d10]",
+};
+
+function joinNames(names: string[]): string {
+  if (names.length <= 1) return names.join("");
+  return `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}`;
+}
+
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+/** Day-of-week index with Monday = 0 ... Sunday = 6, instead of JS's native Sunday = 0. */
 function mondayFirstIndex(date: Date): number {
   return (date.getUTCDay() + 6) % 7;
 }
@@ -29,7 +41,7 @@ export default function MonthGrid({
   staffList,
 }: {
   year: number;
-  month: number;
+  month: number; // 1-12
   byDate: Map<string, DayData>;
   extraClosedDates: Map<string, string>;
   blackoutPeriods: BlackoutPeriod[];
@@ -65,6 +77,7 @@ export default function MonthGrid({
           const closed = getClosedReason(date, extraClosedDates);
           const blackoutLabel = !closed.closed ? getBlackoutLabelForDate(key, blackoutPeriods) : null;
           const data = byDate.get(key);
+          const saturdayTeam = getSaturdayTeam(date);
 
           return (
             <div
@@ -80,7 +93,17 @@ export default function MonthGrid({
                     : ""
               }`}
             >
-              <div className={`font-mono ${inMonth ? "text-ink" : "text-ink-soft/60"}`}>{date.getUTCDate()}</div>
+              <div className="flex items-center justify-between gap-1">
+                <span className={`font-mono ${inMonth ? "text-ink" : "text-ink-soft/60"}`}>{date.getUTCDate()}</span>
+                {saturdayTeam && (
+                  <span
+                    className={`text-[8px] leading-none px-1 py-0.5 rounded truncate max-w-[5.5rem] ${SATURDAY_TEAM_COLORS[saturdayTeam.color]}`}
+                    title={joinNames(saturdayTeam.names)}
+                  >
+                    {joinNames(saturdayTeam.names)}
+                  </span>
+                )}
+              </div>
               {closed.closed && <div className="text-[10px] text-ink-soft mt-0.5 truncate">{closed.label}</div>}
               {!closed.closed && blackoutLabel && (
                 <div className="text-[10px] text-ink-soft mt-0.5 truncate">Black out period</div>
