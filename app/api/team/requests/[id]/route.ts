@@ -93,7 +93,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         endDate,
         hours,
         notes: edit.data.notes !== undefined ? edit.data.notes || null : existing.notes,
-        coverName: edit.data.coverName !== undefined ? edit.data.coverName || null : existing.coverName,
       },
     });
     await sendLeaveAmendedEmail({
