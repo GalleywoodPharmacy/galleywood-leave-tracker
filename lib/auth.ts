@@ -36,6 +36,13 @@ export const authOptions: NextAuthOptions = {
         const valid = await verifyPassword(credentials.password, user.passwordHash);
         if (!valid) return null;
 
+        // A demo/trial login never keeps real data around: wipe its own
+        // leave requests clean on every sign-in, so each person who tries
+        // it starts from the same blank slate.
+        if (user.isDemo) {
+          await prisma.leaveRequest.deleteMany({ where: { userId: user.id } });
+        }
+
         return {
           id: user.id,
           name: user.name,

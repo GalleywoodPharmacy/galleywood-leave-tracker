@@ -49,6 +49,21 @@ function LoginForm() {
         <h1 className="text-xl text-header text-center mb-1">Galleywood Pharmacy</h1>
         <p className="text-ink-soft text-center text-sm mb-8">Staff Leave &amp; Rota</p>
 
+        <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 mb-4 text-center">
+          <p className="text-sm text-ink mb-2">Just want to have a look around?</p>
+          <button
+            type="button"
+            onClick={() => {
+              setEmail("demo@galleywoodpharmacy.com");
+              setPassword("TryDemo2026!");
+            }}
+            className="text-sm font-medium text-primary hover:text-header underline"
+          >
+            Fill in the demo login
+          </button>
+          <p className="text-xs text-ink-soft mt-1">Nothing you do on the demo account is kept — it resets itself every time.</p>
+        </div>
+
         <form onSubmit={handleSubmit} className="bg-white border border-line rounded-xl p-6 space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-ink mb-1">

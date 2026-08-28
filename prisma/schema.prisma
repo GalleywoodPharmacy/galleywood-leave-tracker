@@ -24,6 +24,11 @@ model User {
 
   isManager Boolean @default(false)
 
+  // If true, this account's own leave requests are wiped clean automatically
+  // every time it's signed into — used for a public "try it out" demo login
+  // that never accumulates real/permanent data.
+  isDemo Boolean @default(false)
+
   allowanceAnnualHours Float @default(200)
 
   startDate DateTime? @db.Date
