@@ -1,6 +1,7 @@
 import { getClosedReason, getBlackoutLabelForDate, getSaturdayTeam, type BlackoutPeriod } from "@/lib/business-rules";
 import type { DayData } from "@/lib/calendar";
 import LeaveChip from "./leave-chip";
+import SelectableDay from "./selectable-day";
 
 const STATUS_CHIP: Record<string, string> = {
   pending: "bg-pending/15 text-pending",
@@ -21,7 +22,6 @@ function joinNames(names: string[]): string {
 
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-/** Day-of-week index with Monday = 0 ... Sunday = 6, instead of JS's native Sunday = 0. */
 function mondayFirstIndex(date: Date): number {
   return (date.getUTCDay() + 6) % 7;
 }
@@ -39,6 +39,8 @@ export default function MonthGrid({
   currentUserId,
   isManager,
   staffList,
+  selStart,
+  selEnd,
 }: {
   year: number;
   month: number; // 1-12
@@ -48,6 +50,8 @@ export default function MonthGrid({
   currentUserId: string;
   isManager: boolean;
   staffList: { id: string; name: string }[];
+  selStart: string | null;
+  selEnd: string | null;
 }) {
   const monthStart = new Date(Date.UTC(year, month - 1, 1));
   const monthEnd = new Date(Date.UTC(year, month, 0));
@@ -80,8 +84,13 @@ export default function MonthGrid({
           const saturdayTeam = getSaturdayTeam(date);
 
           return (
-            <div
+            <SelectableDay
               key={key}
+              dateKey={key}
+              year={year}
+              month={month}
+              selStart={selStart}
+              selEnd={selEnd}
               title={closed.closed ? closed.label : blackoutLabel ?? undefined}
               className={`min-h-[6.5rem] border-b border-r border-line p-1.5 text-xs align-top ${
                 inMonth ? "" : "bg-page/60"
@@ -130,7 +139,7 @@ export default function MonthGrid({
                   <div className="text-[10px] text-ink-soft">+{data.leave.length - 3} more</div>
                 )}
               </div>
-            </div>
+            </SelectableDay>
           );
         })}
       </div>

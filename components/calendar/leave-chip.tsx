@@ -51,7 +51,8 @@ export default function LeaveChip({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function openModal() {
+  function openModal(e: React.MouseEvent) {
+    e.stopPropagation();
     if (!canEdit) return;
     setMode(cover?.type === "external" ? "external" : "staff");
     setStaffUserId(cover?.type === "staff" ? cover.userId : "");

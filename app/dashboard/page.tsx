@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getBalance, getBankHolidayBreakdownForUser } from "@/lib/leave";
@@ -8,7 +9,6 @@ import YearSelect from "@/components/year-select";
 import BalanceCards from "@/components/leave/balance-cards";
 import BankHolidayBreakdown from "@/components/leave/bank-holiday-breakdown";
 import UpcomingLeaveCard from "@/components/leave/upcoming-leave-card";
-import RequestForm from "@/components/leave/request-form";
 import HistoryTable from "@/components/leave/history-table";
 
 export default async function DashboardPage({ searchParams }: { searchParams: { year?: string } }) {
@@ -78,14 +78,19 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
           <BankHolidayBreakdown items={bankHolidayItems} year={selectedYear} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          <div id="request-leave" className="scroll-mt-6">
-            <RequestForm />
-          </div>
-          <div>
-            <h2 className="text-header text-lg mb-3">History</h2>
-            <HistoryTable requests={serializedRequests} />
-          </div>
+        <div className="bg-primary/10 border border-primary/30 rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-2">
+          <p className="text-sm text-ink">Want to request leave? Click the days you want directly on the Calendar.</p>
+          <Link
+            href="/calendar"
+            className="rounded-lg bg-primary text-white text-sm font-medium px-4 py-1.5 hover:bg-header transition-colors"
+          >
+            Go to Calendar
+          </Link>
+        </div>
+
+        <div>
+          <h2 className="text-header text-lg mb-3">History</h2>
+          <HistoryTable requests={serializedRequests} />
         </div>
       </main>
     </div>
