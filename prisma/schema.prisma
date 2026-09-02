@@ -89,6 +89,13 @@ model LeaveRequest {
   // annual leave balance).
   type LeaveType @default(annual)
 
+  // True only for a sick leave entry logged without confirming a real end
+  // date yet (the "not sure how long they'll be off" case) — cleared
+  // automatically the next time it's edited via Team & Approvals. Lets
+  // Reports and Team & Approvals flag entries that might be silently
+  // making a month's hours look wrong until someone finalizes them.
+  openEnded Boolean @default(false)
+
   // Who's covering this leave, as a JSON object shaped like one of:
   //   { "type": "staff", "userId": "...", "name": "..." }
   //   { "type": "external", "name": "..." }

@@ -2,6 +2,22 @@ import { prisma } from "./prisma";
 import { DEFAULT_ROTA, loadExtraClosedDates } from "./leave";
 import { calculateLeaveHoursForRota, bankHolidayBreakdownForRota, type WeeklyRota } from "./business-rules";
 
+export type OpenSickLeave = { requestId: string; name: string; startDate: string };
+
+/** Sick leave entries still sitting on their unconfirmed placeholder end date — these can make a month's hours look wrong until someone finalizes them. */
+export async function getOpenSickLeave(): Promise<OpenSickLeave[]> {
+  const rows = await prisma.leaveRequest.findMany({
+    where: { type: "sick", openEnded: true, status: "approved" },
+    include: { user: { select: { name: true } } },
+    orderBy: { startDate: "asc" },
+  });
+  return rows.map((r) => ({
+    requestId: r.id,
+    name: r.user.name,
+    startDate: r.startDate.toISOString().slice(0, 10),
+  }));
+}
+
 export type MonthlyStaffReport = {
   userId: string;
   name: string;

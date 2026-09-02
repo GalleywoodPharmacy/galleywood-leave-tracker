@@ -1,9 +1,10 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
-import { getMonthlyReport } from "@/lib/reports";
+import { getMonthlyReport, getOpenSickLeave } from "@/lib/reports";
 import AppNav from "@/components/app-nav";
 import MonthSelect from "@/components/reports/month-select";
+import OpenSickLeaveBanner from "@/components/team/open-sick-leave-banner";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -30,7 +31,7 @@ export default async function ReportsPage({
     years.sort((a, b) => a - b);
   }
 
-  const report = await getMonthlyReport(year, month);
+  const [report, openSickLeave] = await Promise.all([getMonthlyReport(year, month), getOpenSickLeave()]);
 
   return (
     <div className="min-h-screen bg-page">
@@ -43,6 +44,8 @@ export default async function ReportsPage({
           </h1>
           <MonthSelect year={year} month={month} years={years} />
         </div>
+
+        <OpenSickLeaveBanner items={openSickLeave} />
 
         <p className="text-xs text-ink-soft">
           Normal hours are each person's rota hours for the month, minus annual leave, bank holiday, and sick hours

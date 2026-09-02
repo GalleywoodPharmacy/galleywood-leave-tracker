@@ -13,7 +13,6 @@ const editSchema = z.object({
   endDate: z.string().optional(),
   hours: z.number().positive().optional(),
   notes: z.string().max(2000).optional(),
-  coverName: z.string().max(200).optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -93,6 +92,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         endDate,
         hours,
         notes: edit.data.notes !== undefined ? edit.data.notes || null : existing.notes,
+        // Editing and saving a sick leave entry is how a manager confirms
+        // its real end date, so it's no longer "unconfirmed" once saved.
+        ...(existing.type === "sick" ? { openEnded: false } : {}),
       },
     });
     await sendLeaveAmendedEmail({

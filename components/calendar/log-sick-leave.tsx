@@ -56,7 +56,7 @@ export default function LogSickLeave({ staffList }: { staffList: { id: string; n
     const res = await fetch("/api/sick-leave", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, startDate, endDate, notes: notes || undefined }),
+      body: JSON.stringify({ userId, startDate, endDate, notes: notes || undefined, openEnded: !endTouched }),
     });
     setSubmitting(false);
     const data = await res.json().catch(() => ({}));

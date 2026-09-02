@@ -10,6 +10,7 @@ const createSchema = z
     startDate: z.string(),
     endDate: z.string(),
     notes: z.string().max(2000).optional(),
+    openEnded: z.boolean().optional(),
   })
   .refine((data) => new Date(data.startDate) <= new Date(data.endDate), {
     message: "Start date must be on or before end date",
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid request" }, { status: 400 });
   }
 
-  const { userId, startDate, endDate, notes } = parsed.data;
+  const { userId, startDate, endDate, notes, openEnded } = parsed.data;
 
   const staffMember = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
   if (!staffMember) {
@@ -52,6 +53,7 @@ export async function POST(req: Request) {
       endDate: end,
       hours,
       notes: notes || null,
+      openEnded: openEnded ?? false,
       status: "approved",
       decidedById: session.user.id,
       decidedAt: new Date(),
