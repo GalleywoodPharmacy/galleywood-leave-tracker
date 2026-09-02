@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -13,6 +13,23 @@ enum LeaveStatus {
   approved
   denied
   cancelled
+}
+
+// A business using the app — currently there's only ever one (Galleywood),
+// but every user is now explicitly linked to one rather than the app just
+// assuming "there's only ever one business" the way it did before. This is
+// step one of making the app safely support more than one business later
+// without a rebuild: nothing else is organization-scoped yet (that's the
+// next phase — every other table and every query needs the same treatment),
+// but this is the anchor everything else will hang off.
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  users User[]
+
+  @@map("organizations")
 }
 
 model User {
@@ -32,6 +49,12 @@ model User {
   allowanceAnnualHours Float @default(200)
 
   startDate DateTime? @db.Date
+
+  // Nullable for now — every existing user gets backfilled to Galleywood via
+  // a one-off script right after this migration, then this becomes required
+  // in a follow-up once every row has one.
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -55,8 +78,16 @@ model LeaveRequest {
   hours Float
   notes String?
 
+  // Who's covering this leave, as a JSON object shaped like one of:
+  //   { "type": "staff", "userId": "...", "name": "..." }
+  //   { "type": "external", "name": "..." }
+  // This is the default that applies to the whole leave period.
   coverName Json?
 
+  // Per-day overrides ("YYYY-MM-DD" -> same shape as coverName above), for
+  // when cover is set for just one day within a multi-day leave rather than
+  // the whole period. A day present here takes priority over coverName for
+  // that specific date.
   coverNameByDate Json?
 
   status LeaveStatus @default(pending)
