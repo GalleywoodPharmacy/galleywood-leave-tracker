@@ -13,6 +13,7 @@ export default function LogSickLeave({ staffList }: { staffList: { id: string; n
   const [userId, setUserId] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [endTouched, setEndTouched] = useState(false);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,8 +22,24 @@ export default function LogSickLeave({ staffList }: { staffList: { id: string; n
     setUserId("");
     setStartDate("");
     setEndDate("");
+    setEndTouched(false);
     setNotes("");
     setError(null);
+  }
+
+  function handleStartChange(value: string) {
+    setStartDate(value);
+    // Not sure yet how long someone will be off? Leave End date alone and
+    // it'll track Start date automatically until you touch it yourself —
+    // so picking just a start date logs a single open-ended day, and you
+    // can come back later (via Team & Approvals → Edit) to extend it once
+    // you know when they're back.
+    if (!endTouched) setEndDate(value);
+  }
+
+  function handleEndChange(value: string) {
+    setEndTouched(true);
+    setEndDate(value);
   }
 
   async function submit() {
@@ -89,12 +106,16 @@ export default function LogSickLeave({ staffList }: { staffList: { id: string; n
 
             <div>
               <label className="block text-xs text-ink-soft mb-1">Start date</label>
-              <DateInput value={startDate} onChange={setStartDate} />
+              <DateInput value={startDate} onChange={handleStartChange} />
             </div>
 
             <div>
               <label className="block text-xs text-ink-soft mb-1">End date</label>
-              <DateInput value={endDate} onChange={setEndDate} />
+              <DateInput value={endDate} onChange={handleEndChange} />
+              <p className="text-xs text-ink-soft mt-1">
+                Not sure yet? Leave this matching the start date for a single open-ended day — you can extend it
+                later from Team &amp; Approvals once you know when they're back.
+              </p>
             </div>
 
             <div>

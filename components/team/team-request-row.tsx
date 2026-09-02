@@ -12,6 +12,7 @@ export type TeamRequest = {
   hours: number;
   notes: string | null;
   status: "pending" | "approved" | "denied" | "cancelled";
+  type: "annual" | "sick";
   submittedAt: string;
   decidedAt: string | null;
   userName: string;
@@ -137,7 +138,14 @@ export default function TeamRequestRow({ request, zebra }: { request: TeamReques
   return (
     <tr className={zebra ? "bg-card/40" : ""}>
       <td className="px-5 py-3 border-t border-line">
-        <div className="font-medium">{request.userName}</div>
+        <div className="font-medium">
+          {request.userName}
+          {request.type === "sick" && (
+            <span className="ml-1.5 inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 align-middle">
+              Sick
+            </span>
+          )}
+        </div>
       </td>
       <td className="px-5 py-3 border-t border-line font-mono text-xs">
         {fmt(request.startDate)} – {fmt(request.endDate)}

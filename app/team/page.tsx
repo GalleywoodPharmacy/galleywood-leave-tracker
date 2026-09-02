@@ -16,6 +16,7 @@ function serialize(r: {
   hours: number;
   notes: string | null;
   status: string;
+  type: string;
   submittedAt: Date;
   decidedAt: Date | null;
   user: { name: string; email: string };
@@ -28,6 +29,7 @@ function serialize(r: {
     hours: r.hours,
     notes: r.notes,
     status: r.status as "pending" | "approved" | "denied" | "cancelled",
+    type: r.type as "annual" | "sick",
     submittedAt: r.submittedAt.toISOString(),
     decidedAt: r.decidedAt ? r.decidedAt.toISOString() : null,
     userName: r.user.name,

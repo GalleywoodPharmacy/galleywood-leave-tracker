@@ -76,7 +76,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       edit.data.hours ??
       (edit.data.startDate || edit.data.endDate ? await computeHoursForRangeForUser(existing.userId, startDate, endDate) : existing.hours);
 
-    if (existing.status === "pending" || existing.status === "approved") {
+    if (existing.type === "annual" && (existing.status === "pending" || existing.status === "approved")) {
       const balance = await getBalance(existing.userId, startDate.getUTCFullYear(), existing.id);
       if (hours > balance.remainingHours) {
         return NextResponse.json(
