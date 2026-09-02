@@ -84,4 +84,71 @@ model LeaveRequest {
   notes String?
 
   // Annual leave (counts against the person's allowance, goes through the
-  // usual pending/approve workflow) or
+  // usual pending/approve workflow) or sick leave (manager-logged directly
+  // via the Calendar, always immediately "approved", never touches anyone's
+  // annual leave balance).
+  type LeaveType @default(annual)
+
+  // Who's covering this leave, as a JSON object shaped like one of:
+  //   { "type": "staff", "userId": "...", "name": "..." }
+  //   { "type": "external", "name": "..." }
+  // This is the default that applies to the whole leave period.
+  coverName Json?
+
+  // Per-day overrides ("YYYY-MM-DD" -> same shape as coverName above), for
+  // when cover is set for just one day within a multi-day leave rather than
+  // the whole period. A day present here takes priority over coverName for
+  // that specific date.
+  coverNameByDate Json?
+
+  status LeaveStatus @default(pending)
+
+  submittedAt DateTime  @default(now())
+  decidedAt   DateTime?
+  decidedById String?
+  decidedBy   User?     @relation("DecidedByUser", fields: [decidedById], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("leave_requests")
+}
+
+model ExtraClosedDate {
+  date  DateTime @id @db.Date
+  label String
+
+  @@map("extra_closed_dates")
+}
+
+model LoginToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose   String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@map("login_tokens")
+}
+
+model StaffRota {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  sundayHours    Float @default(0)
+  mondayHours    Float @default(7.5)
+  tuesdayHours   Float @default(7.5)
+  wednesdayHours Float @default(7.5)
+  thursdayHours  Float @default(7.5)
+  fridayHours    Float @default(7.5)
+  saturdayHours  Float @default(4)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("staff_rotas")
+}
