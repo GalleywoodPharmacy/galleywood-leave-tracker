@@ -1,12 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // pdfkit reads its built-in font data files (.afm) from inside its own
-  // package at runtime. Vercel's serverless file-tracing doesn't pick up
-  // non-code files like these automatically, so without this the PDF
-  // export route fails at runtime with a 500 even though the build itself
-  // succeeds — this explicitly tells it to include them.
-  outputFileTracingIncludes: {
-    "/api/reports/export/pdf": ["./node_modules/pdfkit/js/data/**/*"],
+  // pdfkit's build uses a Node "imports" self-reference (e.g.
+  // #standard-fonts/Helvetica) to load its built-in fonts. Next.js's
+  // bundler doesn't resolve that correctly when it tries to fold pdfkit
+  // into the serverless function, causing a runtime "Cannot find module"
+  // error even though the build itself succeeds. Marking it external tells
+  // Next.js to leave it alone and let Node's own module resolution — which
+  // handles this fine — run it directly instead.
+  experimental: {
+    serverComponentsExternalPackages: ["pdfkit"],
   },
 };
 
