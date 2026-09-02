@@ -10,6 +10,14 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ["pdfkit"],
   },
+  // Even external, Vercel's automatic file-tracing doesn't follow pdfkit's
+  // "imports" map to find the .cjs font files it loads at runtime (e.g.
+  // js/standard-fonts/Helvetica.cjs) — without this they're missing from
+  // the deployed function entirely, even though the build succeeds. This
+  // explicitly includes the whole folder rather than one file at a time.
+  outputFileTracingIncludes: {
+    "/api/reports/export/pdf": ["./node_modules/pdfkit/js/**/*"],
+  },
 };
 
 export default nextConfig;
