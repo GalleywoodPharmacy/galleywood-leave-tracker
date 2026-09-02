@@ -5,6 +5,7 @@ import { getMonthlyReport, getOpenSickLeave } from "@/lib/reports";
 import AppNav from "@/components/app-nav";
 import MonthSelect from "@/components/reports/month-select";
 import OpenSickLeaveBanner from "@/components/team/open-sick-leave-banner";
+import ReportPrintButton from "@/components/reports/print-button";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -34,20 +35,39 @@ export default async function ReportsPage({
   const [report, openSickLeave] = await Promise.all([getMonthlyReport(year, month), getOpenSickLeave()]);
 
   return (
-    <div className="min-h-screen bg-page">
-      <AppNav isManager={session.user.isManager} />
+    <div className="min-h-screen bg-page print:bg-white">
+      <div className="print:hidden">
+        <AppNav isManager={session.user.isManager} />
+      </div>
 
       <main className="p-6 max-w-4xl mx-auto space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <h1 className="text-xl text-header">
             Report — {MONTH_NAMES[month - 1]} {year}
           </h1>
-          <MonthSelect year={year} month={month} years={years} />
+          <div className="flex items-center gap-2 flex-wrap print:hidden">
+            <MonthSelect year={year} month={month} years={years} />
+            <a
+              href={`/api/reports/export/xlsx?year=${year}&month=${month}`}
+              className="rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-card"
+            >
+              Export Excel
+            </a>
+            <a
+              href={`/api/reports/export/pdf?year=${year}&month=${month}`}
+              className="rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-card"
+            >
+              Export PDF
+            </a>
+            <ReportPrintButton />
+          </div>
         </div>
 
-        <OpenSickLeaveBanner items={openSickLeave} />
+        <div className="print:hidden">
+          <OpenSickLeaveBanner items={openSickLeave} />
+        </div>
 
-        <p className="text-xs text-ink-soft">
+        <p className="text-xs text-ink-soft print:hidden">
           Normal hours are each person's rota hours for the month, minus annual leave, bank holiday, and sick hours
           taken that month. Uses each person's current rota — if it's changed recently, past months won't reflect
           what their rota actually was back then.
