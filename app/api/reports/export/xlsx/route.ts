@@ -40,7 +40,7 @@ export async function GET(req: Request) {
 
   const filename = `Galleywood-Report-${MONTH_NAMES[month - 1]}-${year}.xlsx`;
 
-  return new NextResponse(buffer, {
+  return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition": `attachment; filename="${filename}"`,
