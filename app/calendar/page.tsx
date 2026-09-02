@@ -49,7 +49,9 @@ export default async function CalendarPage({
 
   // Carry an in-progress selection across a month change, so a leave
   // request spanning a month boundary doesn't lose its start day.
-  const selQuery = `${selStart ? `&selStart=${selStart}` : ""}${selEnd ? `&selEnd=${selEnd}` : ""}`;
+  let selQuery = "";
+  if (selStart) selQuery += "&selStart=" + selStart;
+  if (selEnd) selQuery += "&selEnd=" + selEnd;
 
   return (
     <div className="min-h-screen bg-page print:bg-white">
@@ -108,4 +110,27 @@ export default async function CalendarPage({
           change who's covering it. Approved leave shows a small box underneath with the cover status.
         </p>
 
-        <div className="grid grid-cols-1
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+          <div className="lg:col-span-2">
+            <MonthGrid
+              year={year}
+              month={month}
+              byDate={byDate}
+              extraClosedDates={extraClosedDates}
+              blackoutPeriods={blackoutPeriods}
+              currentUserId={session.user.id}
+              isManager={session.user.isManager}
+              staffList={staffList}
+              selStart={selStart}
+              selEnd={selEnd}
+            />
+          </div>
+          <div className="print:hidden space-y-4">
+            <CalendarRequestForm currentUserId={session.user.id} byDate={byDate} blackoutPeriods={blackoutPeriods} />
+            {session.user.isManager && <LogSickLeave staffList={staffList} />}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
