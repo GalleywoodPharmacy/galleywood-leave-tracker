@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import SignOutButton from "./sign-out-button";
-import { HomeIcon, CalendarIcon, UmbrellaIcon, UserIcon, PeopleIcon, SettingsIcon, HelpIcon } from "./nav-icons";
+import { HomeIcon, CalendarIcon, UmbrellaIcon, UserIcon, PeopleIcon, SettingsIcon, ReportIcon, HelpIcon } from "./nav-icons";
 
 const LINKS = [
   { href: "/dashboard", label: "Dashboard", icon: HomeIcon },
@@ -20,6 +20,7 @@ export default function AppNav({ isManager }: { isManager: boolean }) {
     ? [
         ...LINKS,
         { href: "/team", label: "Team & Approvals", icon: PeopleIcon },
+        { href: "/reports", label: "Reports", icon: ReportIcon },
         { href: "/settings", label: "Settings", icon: SettingsIcon },
         HELP_LINK,
       ]

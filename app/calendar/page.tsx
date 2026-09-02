@@ -9,6 +9,7 @@ import AppNav from "@/components/app-nav";
 import MonthGrid from "@/components/calendar/month-grid";
 import PrintButton from "@/components/calendar/print-button";
 import CalendarRequestForm from "@/components/calendar/calendar-request-form";
+import LogSickLeave from "@/components/calendar/log-sick-leave";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -98,6 +99,7 @@ export default async function CalendarPage({
             <span className="w-3 h-3 rounded bg-ink-soft/25 inline-block" />
             Black out period
           </span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-purple-200 inline-block" /> Sick</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded ring-2 ring-inset ring-accent bg-accent/10 inline-block" /> Your selection</span>
         </div>
 
@@ -106,26 +108,4 @@ export default async function CalendarPage({
           change who's covering it. Approved leave shows a small box underneath with the cover status.
         </p>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-          <div className="lg:col-span-2">
-            <MonthGrid
-              year={year}
-              month={month}
-              byDate={byDate}
-              extraClosedDates={extraClosedDates}
-              blackoutPeriods={blackoutPeriods}
-              currentUserId={session.user.id}
-              isManager={session.user.isManager}
-              staffList={staffList}
-              selStart={selStart}
-              selEnd={selEnd}
-            />
-          </div>
-          <div className="print:hidden">
-            <CalendarRequestForm currentUserId={session.user.id} byDate={byDate} blackoutPeriods={blackoutPeriods} />
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-}
+        <div className="grid grid-cols-1

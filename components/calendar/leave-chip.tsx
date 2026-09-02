@@ -17,6 +17,7 @@ export default function LeaveChip({
   requestId,
   name,
   status,
+  type,
   cover,
   canEdit,
   statusClass,
@@ -29,6 +30,7 @@ export default function LeaveChip({
   requestId: string;
   name: string;
   status: "pending" | "approved" | "denied";
+  type: "annual" | "sick";
   cover: CoverInfo | null;
   canEdit: boolean;
   statusClass: string;
@@ -42,6 +44,7 @@ export default function LeaveChip({
   const showToast = useToast();
   const isMultiDay = periodStart !== periodEnd;
   const isApproved = status === "approved";
+  const isSick = type === "sick";
 
   const [open, setOpen] = useState(false);
   const [scope, setScope] = useState<"day" | "period" | null>(null);
@@ -101,6 +104,7 @@ export default function LeaveChip({
   const coverBoxClass = !cover
     ? "bg-red-50 text-red-700 border border-dashed border-red-400"
     : "bg-coverage/20 text-coverage";
+  const nameClass = isSick ? "bg-purple-100 text-purple-700" : statusClass;
 
   return (
     <>
@@ -108,8 +112,8 @@ export default function LeaveChip({
         onClick={openModal}
         className={`rounded overflow-hidden ${canEdit ? "cursor-pointer hover:ring-1 hover:ring-primary/50" : ""}`}
       >
-        <div className={`truncate px-1 py-0.5 ${statusClass}`} title={canEdit ? "Click to manage cover" : `${name} (${status})`}>
-          {name.split(" ")[0]}
+        <div className={`truncate px-1 py-0.5 ${nameClass}`} title={canEdit ? "Click to manage cover" : `${name} (${isSick ? "sick" : status})`}>
+          {name.split(" ")[0]} {isSick && <span className="opacity-75">· sick</span>}
         </div>
         {isApproved && (
           <div className={`truncate px-1 py-0.5 text-[9px] leading-tight ${coverBoxClass}`} title={cover ? `Covered by ${cover.name}` : "No cover yet"}>

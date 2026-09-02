@@ -125,6 +125,7 @@ export default function MonthGrid({
                     requestId={l.requestId}
                     name={l.name}
                     status={l.status}
+                    type={l.type}
                     cover={l.cover}
                     canEdit={l.userId === currentUserId || isManager}
                     statusClass={STATUS_CHIP[l.status]}

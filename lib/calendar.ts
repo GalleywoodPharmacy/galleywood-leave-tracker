@@ -7,9 +7,10 @@ export type DayChipLeave = {
   userId: string;
   name: string;
   status: "pending" | "approved" | "denied";
+  type: "annual" | "sick";
   cover: CoverInfo | null;
-  periodStart: string;
-  periodEnd: string;
+  periodStart: string; // "YYYY-MM-DD"
+  periodEnd: string; // "YYYY-MM-DD"
 };
 export type DayData = {
   key: string;
@@ -66,6 +67,7 @@ export async function getMonthCalendarData(year: number, month: number) {
         userId: r.userId,
         name: r.user.name,
         status: r.status as "pending" | "approved" | "denied",
+        type: r.type as "annual" | "sick",
         cover,
         periodStart,
         periodEnd,

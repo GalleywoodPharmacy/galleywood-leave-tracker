@@ -66,6 +66,14 @@ export function SettingsIcon() {
   );
 }
 
+export function ReportIcon() {
+  return base(
+    <>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+    </>
+  );
+}
+
 export function HelpIcon() {
   return base(
     <>

@@ -86,6 +86,7 @@ export async function getBalance(userId: string, year: number, excludeRequestId?
     prisma.leaveRequest.findMany({
       where: {
         userId,
+        type: "annual",
         status: { in: ["approved", "pending"] },
         startDate: { gte: yearStart, lte: yearEnd },
         ...(excludeRequestId ? { id: { not: excludeRequestId } } : {}),
