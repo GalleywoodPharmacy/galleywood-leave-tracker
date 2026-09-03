@@ -69,8 +69,8 @@ export default async function ReportsPage({
 
         <p className="text-xs text-ink-soft print:hidden">
           Normal hours are each person's rota hours for the month, minus annual leave, bank holiday, and sick hours
-          taken that month. Uses each person's current rota — if it's changed recently, past months won't reflect
-          what their rota actually was back then.
+          taken that month. Total worked adds any overtime logged that month on top. Uses each person's current
+          rota — if it's changed recently, past months won't reflect what their rota actually was back then.
         </p>
 
         <div className="bg-white border border-line rounded-xl overflow-x-auto">
@@ -80,6 +80,8 @@ export default async function ReportsPage({
                 <th className="px-5 py-3 font-medium">Staff</th>
                 <th className="px-5 py-3 font-medium">Rota hours</th>
                 <th className="px-5 py-3 font-medium">Normal (worked)</th>
+                <th className="px-5 py-3 font-medium">Overtime</th>
+                <th className="px-5 py-3 font-medium">Total worked</th>
                 <th className="px-5 py-3 font-medium">Annual leave</th>
                 <th className="px-5 py-3 font-medium">Bank holiday</th>
                 <th className="px-5 py-3 font-medium">Sick</th>
@@ -91,6 +93,8 @@ export default async function ReportsPage({
                   <td className="px-5 py-3 border-t border-line font-medium">{r.name}</td>
                   <td className="px-5 py-3 border-t border-line font-mono">{r.rotaHours}h</td>
                   <td className="px-5 py-3 border-t border-line font-mono text-primary">{r.normalHoursWorked}h</td>
+                  <td className="px-5 py-3 border-t border-line font-mono text-green-700">{r.overtimeHours}h</td>
+                  <td className="px-5 py-3 border-t border-line font-mono font-medium">{r.totalHoursWorked}h</td>
                   <td className="px-5 py-3 border-t border-line font-mono">{r.annualLeaveHours}h</td>
                   <td className="px-5 py-3 border-t border-line font-mono">{r.bankHolidayHours}h</td>
                   <td className="px-5 py-3 border-t border-line font-mono text-purple-700">{r.sickHours}h</td>
@@ -98,7 +102,7 @@ export default async function ReportsPage({
               ))}
               {report.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-4 text-ink-soft border-t border-line">
+                  <td colSpan={8} className="px-5 py-4 text-ink-soft border-t border-line">
                     No staff to report on yet.
                   </td>
                 </tr>

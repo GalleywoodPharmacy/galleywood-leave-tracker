@@ -8,8 +8,8 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-const COLUMNS = ["Staff", "Rota hours", "Normal (worked)", "Annual leave", "Bank holiday", "Sick"];
-const COL_WIDTHS = [170, 90, 110, 90, 90, 70];
+const COLUMNS = ["Staff", "Rota hours", "Normal (worked)", "Overtime", "Total worked", "Annual leave", "Bank holiday", "Sick"];
+const COL_WIDTHS = [150, 75, 95, 70, 85, 75, 75, 60];
 const START_X = 40;
 const PAGE_BOTTOM = 500;
 
@@ -52,6 +52,8 @@ function buildPdfBuffer(report: MonthlyStaffReport[], monthLabel: string): Promi
         r.name,
         `${r.rotaHours}h`,
         `${r.normalHoursWorked}h`,
+        `${r.overtimeHours}h`,
+        `${r.totalHoursWorked}h`,
         `${r.annualLeaveHours}h`,
         `${r.bankHolidayHours}h`,
         `${r.sickHours}h`,

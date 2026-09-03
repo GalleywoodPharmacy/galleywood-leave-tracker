@@ -26,6 +26,8 @@ export type MonthlyStaffReport = {
   bankHolidayHours: number;
   sickHours: number;
   normalHoursWorked: number;
+  overtimeHours: number;
+  totalHoursWorked: number;
 };
 
 function round1(n: number): number {
@@ -54,6 +56,7 @@ function rotaHoursForMonth(rota: WeeklyRota, year: number, month: number): numbe
  *                            − annual leave hours taken that month
  *                            − bank holiday hours that month
  *                            − sick hours that month
+ *   Total worked hours = Normal (worked) + overtime hours logged that month
  *
  * Annual leave and sick hours are recomputed for just the days of each
  * request that fall within this month (a request spanning a month
@@ -63,13 +66,15 @@ function rotaHoursForMonth(rota: WeeklyRota, year: number, month: number): numbe
  * any day someone was also on leave (that day already counts as 0 leave
  * hours, consistent with how the rest of the app treats bank holidays
  * inside a leave period), so there's no double-counting between the two.
+ * Overtime entries are single-day, so no month-boundary clipping is needed
+ * for them.
  */
 export async function getMonthlyReport(year: number, month: number): Promise<MonthlyStaffReport[]> {
   const monthStart = new Date(Date.UTC(year, month - 1, 1));
   const monthEnd = new Date(Date.UTC(year, month, 0));
   const monthKey = `${year}-${String(month).padStart(2, "0")}`;
 
-  const [users, extraClosedDates, leaveRequests] = await Promise.all([
+  const [users, extraClosedDates, leaveRequests, overtimeEntries] = await Promise.all([
     prisma.user.findMany({ where: { isDemo: false }, orderBy: { name: "asc" }, include: { rota: true } }),
     loadExtraClosedDates(),
     prisma.leaveRequest.findMany({
@@ -78,6 +83,9 @@ export async function getMonthlyReport(year: number, month: number): Promise<Mon
         startDate: { lte: monthEnd },
         endDate: { gte: monthStart },
       },
+    }),
+    prisma.overtimeEntry.findMany({
+      where: { date: { gte: monthStart, lte: monthEnd } },
     }),
   ]);
 
@@ -116,6 +124,11 @@ export async function getMonthlyReport(year: number, month: number): Promise<Mon
 
     const normalHoursWorked = Math.max(0, round1(rotaHours - annualLeaveHours - bankHolidayHours - sickHours));
 
+    const overtimeHours = round1(
+      overtimeEntries.filter((o) => o.userId === u.id).reduce((sum, o) => sum + o.hours, 0)
+    );
+    const totalHoursWorked = round1(normalHoursWorked + overtimeHours);
+
     return {
       userId: u.id,
       name: u.name,
@@ -124,6 +137,8 @@ export async function getMonthlyReport(year: number, month: number): Promise<Mon
       bankHolidayHours,
       sickHours,
       normalHoursWorked,
+      overtimeHours,
+      totalHoursWorked,
     };
   });
 }

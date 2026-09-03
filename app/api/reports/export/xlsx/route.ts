@@ -25,13 +25,24 @@ export async function GET(req: Request) {
     Staff: r.name,
     "Rota hours": r.rotaHours,
     "Normal (worked)": r.normalHoursWorked,
+    Overtime: r.overtimeHours,
+    "Total worked": r.totalHoursWorked,
     "Annual leave": r.annualLeaveHours,
     "Bank holiday": r.bankHolidayHours,
     Sick: r.sickHours,
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(rows);
-  worksheet["!cols"] = [{ wch: 22 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 10 }];
+  worksheet["!cols"] = [
+    { wch: 22 },
+    { wch: 12 },
+    { wch: 16 },
+    { wch: 10 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 10 },
+  ];
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
