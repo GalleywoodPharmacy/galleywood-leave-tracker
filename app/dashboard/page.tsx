@@ -28,7 +28,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
 
   const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
-  const [balance, bankHolidayItems, requests, nextLeave] = await Promise.all([
+  const [balance, bankHolidayItems, requests, nextLeave, organization] = await Promise.all([
     getBalance(session.user.id, selectedYear, organizationId),
     getBankHolidayBreakdownForUser(session.user.id, selectedYear, organizationId),
     prisma.leaveRequest.findMany({
@@ -38,6 +38,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
     prisma.leaveRequest.findFirst({
       where: { userId: session.user.id, organizationId, status: "approved", endDate: { gte: todayUTC } },
       orderBy: { startDate: "asc" },
+    }),
+    prisma.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      select: { bankHolidaysIncludedInAllowance: true },
     }),
   ]);
 
@@ -76,7 +80,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
           <BalanceCards balance={balance} year={selectedYear} />
-          <BankHolidayBreakdown items={bankHolidayItems} year={selectedYear} />
+          <BankHolidayBreakdown
+            items={bankHolidayItems}
+            year={selectedYear}
+            deductsFromAllowance={organization.bankHolidaysIncludedInAllowance}
+          />
         </div>
 
         <div className="bg-primary/10 border border-primary/30 rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-2">

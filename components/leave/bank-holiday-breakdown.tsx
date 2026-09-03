@@ -21,18 +21,31 @@ function formatShortDate(dateKey: string) {
   });
 }
 
-export default function BankHolidayBreakdown({ items, year }: { items: BankHolidayBreakdownItem[]; year: number }) {
+export default function BankHolidayBreakdown({
+  items,
+  year,
+  deductsFromAllowance,
+}: {
+  items: BankHolidayBreakdownItem[];
+  year: number;
+  deductsFromAllowance: boolean;
+}) {
   const total = Math.round(items.reduce((sum, i) => sum + i.hours, 0) * 10) / 10;
 
   return (
     <div className="bg-white border border-line rounded-2xl shadow-sm hover:shadow-md transition-shadow p-5 flex flex-col h-full">
       <div className="flex items-center gap-2">
-        <span className="text-declined">
+        <span className={deductsFromAllowance ? "text-declined" : "text-ink-soft"}>
           <FlagIcon />
         </span>
         <div>
-          <p className="text-sm font-medium text-ink-soft leading-none">Bank holiday deductions</p>
-          <p className="text-xs text-ink-soft/70 mt-1">{year} — based on your rota</p>
+          <p className="text-sm font-medium text-ink-soft leading-none">
+            {deductsFromAllowance ? "Bank holiday deductions" : "Bank holidays"}
+          </p>
+          <p className="text-xs text-ink-soft/70 mt-1">
+            {year} — based on your rota
+            {!deductsFromAllowance && ", doesn't affect your allowance"}
+          </p>
         </div>
       </div>
 
@@ -46,15 +59,21 @@ export default function BankHolidayBreakdown({ items, year }: { items: BankHolid
                 <div className="text-ink truncate">{item.label}</div>
                 <div className="text-[11px] text-ink-soft font-mono">{formatShortDate(item.dateKey)}</div>
               </div>
-              <span className="text-declined font-mono text-xs bg-declined/10 rounded-full px-2 py-0.5 whitespace-nowrap">
-                -{item.hours}h
-              </span>
+              {deductsFromAllowance ? (
+                <span className="text-declined font-mono text-xs bg-declined/10 rounded-full px-2 py-0.5 whitespace-nowrap">
+                  -{item.hours}h
+                </span>
+              ) : (
+                <span className="text-ink-soft font-mono text-xs bg-page rounded-full px-2 py-0.5 whitespace-nowrap">
+                  {item.hours}h
+                </span>
+              )}
             </div>
           ))}
         </div>
       )}
 
-      {items.length > 0 && (
+      {items.length > 0 && deductsFromAllowance && (
         <div className="mt-auto pt-4 border-t border-line flex justify-between text-sm font-medium text-ink">
           <span>Total</span>
           <span className="font-mono text-declined">-{total}h</span>
