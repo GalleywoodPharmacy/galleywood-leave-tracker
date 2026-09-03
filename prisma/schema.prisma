@@ -63,10 +63,7 @@ model Organization {
   // person's annual leave pot at all — set this to false for those.
   //
   // NOT yet covered by this step: a configurable bank holiday calendar
-  // (the app's list of UK bank holidays stays hardcoded for now) and
-  // Galleywood's own blackout-period policy (pre-Christmas, pre-Easter) —
-  // both are meaningfully bigger pieces of work, deliberately left out of
-  // this pass rather than half-solved.
+  // (the app's list of UK bank holidays stays hardcoded for now).
   bankHolidaysIncludedInAllowance Boolean @default(true)
 
   users            User[]
@@ -74,6 +71,7 @@ model Organization {
   extraClosedDates ExtraClosedDate[] @relation("OrgExtraClosedDates")
   staffRotas       StaffRota[]       @relation("OrgStaffRotas")
   overtimeEntries  OvertimeEntry[]   @relation("OrgOvertimeEntries")
+  blackoutPeriods  ExtraBlackoutPeriod[] @relation("OrgBlackoutPeriods")
 
   @@map("organizations")
 }
@@ -215,6 +213,26 @@ model StaffRota {
   updatedAt DateTime @updatedAt
 
   @@map("staff_rotas")
+}
+
+// A named date range a business wants to grey out on the Calendar as a
+// "no leave requests, please" period (not a closure — the business is
+// still open, staff still work) — fully custom per organization, e.g. a
+// retail business's peak season. Unlike the old hardcoded pre-Christmas/
+// pre-Easter periods this replaces, these are literal one-off date ranges
+// (like ExtraClosedDate) rather than a rule that recomputes every year, so
+// a business re-adds next year's blackout periods when the time comes.
+model ExtraBlackoutPeriod {
+  id        String   @id @default(cuid())
+  label     String
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+
+  organizationId String
+  organization   Organization @relation("OrgBlackoutPeriods", fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@map("extra_blackout_periods")
 }
 
 // Extra hours worked beyond the rota, self-logged by whoever's clicking on

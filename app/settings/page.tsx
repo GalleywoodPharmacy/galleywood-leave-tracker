@@ -8,6 +8,7 @@ import StaffTable from "@/components/settings/staff-table";
 import ClosedDatesManager from "@/components/settings/closed-dates-manager";
 import RotaManager from "@/components/settings/rota-manager";
 import BusinessSettings from "@/components/settings/business-settings";
+import BlackoutPeriodsManager from "@/components/settings/blackout-periods-manager";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -18,11 +19,12 @@ export default async function SettingsPage() {
   const currentYear = new Date().getUTCFullYear();
   const years = [currentYear, currentYear + 1, currentYear + 2];
 
-  const [staff, closedDates, staffRotas, organization] = await Promise.all([
+  const [staff, closedDates, staffRotas, organization, blackoutPeriods] = await Promise.all([
     getAllStaffAnnualAllowances(years, organizationId),
     prisma.extraClosedDate.findMany({ where: { organizationId }, orderBy: { date: "asc" } }),
     getAllStaffRotas(organizationId),
     prisma.organization.findUniqueOrThrow({ where: { id: organizationId } }),
+    prisma.extraBlackoutPeriod.findMany({ where: { organizationId }, orderBy: { startDate: "asc" } }),
   ]);
 
   return (
@@ -65,6 +67,23 @@ export default async function SettingsPage() {
         <section>
           <h2 className="text-header text-lg mb-3">Extra closed dates</h2>
           <ClosedDatesManager dates={closedDates.map((d) => ({ dateKey: d.date.toISOString().slice(0, 10), label: d.label }))} />
+        </section>
+
+        <section>
+          <h2 className="text-header text-lg mb-3">Blackout periods</h2>
+          <p className="text-xs text-ink-soft mb-3">
+            Date ranges shown greyed-out on the Calendar as a hint not to request leave — the business stays open,
+            this doesn't block requests, just flags them. Add next year's periods when the time comes; these don't
+            repeat automatically.
+          </p>
+          <BlackoutPeriodsManager
+            periods={blackoutPeriods.map((p) => ({
+              id: p.id,
+              label: p.label,
+              startDateKey: p.startDate.toISOString().slice(0, 10),
+              endDateKeyInclusive: p.endDate.toISOString().slice(0, 10),
+            }))}
+          />
         </section>
       </main>
     </div>

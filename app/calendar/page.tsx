@@ -4,8 +4,7 @@ import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getMonthCalendarData } from "@/lib/calendar";
-import { getOrgOpenWeekdays, getOrgBranding } from "@/lib/leave";
-import { getBlackoutPeriods } from "@/lib/business-rules";
+import { getOrgOpenWeekdays, getOrgBranding, getOrgBlackoutPeriods } from "@/lib/leave";
 import AppNav from "@/components/app-nav";
 import MonthGrid from "@/components/calendar/month-grid";
 import PrintButton from "@/components/calendar/print-button";
@@ -32,7 +31,7 @@ export default async function CalendarPage({
   const selStart = searchParams.selStart ?? null;
   const selEnd = searchParams.selEnd ?? null;
 
-  const [{ byDate, extraClosedDates }, staffList, openWeekdays, branding] = await Promise.all([
+  const [{ byDate, extraClosedDates }, staffList, openWeekdays, branding, blackoutPeriods] = await Promise.all([
     getMonthCalendarData(year, month, organizationId),
     prisma.user.findMany({
       where: { isDemo: false, organizationId },
@@ -41,16 +40,8 @@ export default async function CalendarPage({
     }),
     getOrgOpenWeekdays(organizationId),
     getOrgBranding(organizationId),
+    getOrgBlackoutPeriods(organizationId),
   ]);
-
-  // The visible grid can show a few days from the adjacent year (e.g.
-  // viewing December includes early-January padding days), so blackout
-  // periods are computed for the surrounding years too, not just this one.
-  const blackoutPeriods = [
-    ...getBlackoutPeriods(year - 1),
-    ...getBlackoutPeriods(year),
-    ...getBlackoutPeriods(year + 1),
-  ];
 
   const prev = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
   const next = month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };

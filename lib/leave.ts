@@ -7,6 +7,7 @@ import {
   type WeeklyRota,
   type BankHolidayBreakdownItem,
   type OpenWeekdays,
+  type BlackoutPeriod,
 } from "./business-rules";
 
 export async function loadExtraClosedDates(organizationId: string): Promise<Map<string, string>> {
@@ -95,6 +96,21 @@ export async function getOrgBranding(organizationId: string): Promise<{ name: st
     where: { id: organizationId },
     select: { name: true, logoUrl: true },
   });
+}
+
+/**
+ * The business's own custom blackout periods — named date ranges shown
+ * greyed-out on the Calendar as a "please don't request leave here" hint.
+ * Fully business-defined (Settings → Business settings), not tied to
+ * Christmas/Easter or any other fixed rule.
+ */
+export async function getOrgBlackoutPeriods(organizationId: string): Promise<BlackoutPeriod[]> {
+  const rows = await prisma.extraBlackoutPeriod.findMany({ where: { organizationId }, orderBy: { startDate: "asc" } });
+  return rows.map((r) => ({
+    startDateKey: r.startDate.toISOString().slice(0, 10),
+    endDateKeyInclusive: r.endDate.toISOString().slice(0, 10),
+    label: r.label,
+  }));
 }
 
 export async function computeHoursForRangeForUser(

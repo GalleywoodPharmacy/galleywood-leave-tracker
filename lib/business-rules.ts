@@ -405,36 +405,15 @@ export function calculateStatutoryAnnualHours(
   return Math.max(0, Math.round((proRatedEntitlement - closureHoursOnWorkingDays) * 10) / 10);
 }
 
-/** A named date range shown greyed-out on the calendar (not a closure — the pharmacy is still open, staff still work). */
+/** A named date range shown greyed-out on the calendar (not a closure — the business is still open, staff still work). Now sourced from each organization's own custom list (lib/leave.ts's getOrgBlackoutPeriods) rather than a hardcoded UK-specific rule. */
 export type BlackoutPeriod = { startDateKey: string; endDateKeyInclusive: string; label: string };
 
-/**
- * Yearly blackout periods, computed fresh each year so they track moving
- * dates automatically (Easter shifts; Christmas doesn't):
- *   - Pre-Christmas: 11–24 December (the 2 weeks up to Christmas Day itself)
- *   - Pre-Easter: the 7 days ending the day before Good Friday
- * Neither range overlaps a bank holiday by design — both stop the day
- * before the closure starts.
- */
-export function getBlackoutPeriods(year: number): BlackoutPeriod[] {
-  const key = (d: Date) => d.toISOString().slice(0, 10);
-
-  const christmasStart = new Date(Date.UTC(year, 11, 11));
-  const christmasEnd = new Date(Date.UTC(year, 11, 24));
-
-  const easter = easterSunday(year);
-  const goodFriday = addDays(easter, -2);
-  const easterBlackoutEnd = addDays(goodFriday, -1);
-  const easterBlackoutStart = addDays(easterBlackoutEnd, -6);
-
-  return [
-    { startDateKey: key(christmasStart), endDateKeyInclusive: key(christmasEnd), label: "Black out period (pre-Christmas)" },
-    {
-      startDateKey: key(easterBlackoutStart),
-      endDateKeyInclusive: key(easterBlackoutEnd),
-      label: "Black out period (pre-Easter)",
-    },
-  ];
+/** Which blackout period (if any) a given "YYYY-MM-DD" date falls in, across the periods passed in. */
+export function getBlackoutLabelForDate(dateKey: string, periods: BlackoutPeriod[]): string | null {
+  for (const p of periods) {
+    if (dateKey >= p.startDateKey && dateKey <= p.endDateKeyInclusive) return p.label;
+  }
+  return null;
 }
 
 /** Which blackout period (if any) a given "YYYY-MM-DD" date falls in, across the periods passed in. */
