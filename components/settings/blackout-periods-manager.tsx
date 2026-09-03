@@ -64,6 +64,11 @@ export default function BlackoutPeriodsManager({ periods }: { periods: BlackoutP
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [showPast, setShowPast] = useState(false);
+
+  const todayKey = toDateKey(todayUTC());
+  const upcoming = periods.filter((p) => p.endDateKeyInclusive >= todayKey);
+  const past = periods.filter((p) => p.endDateKeyInclusive < todayKey);
 
   function applyPreset(preset: (typeof PRESETS)[number]) {
     const end = preset.anchor === "christmas" ? nextChristmasBlackoutEnd() : nextEasterBlackoutEnd();
@@ -105,28 +110,49 @@ export default function BlackoutPeriodsManager({ periods }: { periods: BlackoutP
     router.refresh();
   }
 
+  function renderRow(p: BlackoutPeriodItem) {
+    return (
+      <div key={p.id} className="flex items-center justify-between px-5 py-3 text-sm">
+        <div>
+          <span className="font-mono">
+            {fmt(p.startDateKey)} – {fmt(p.endDateKeyInclusive)}
+          </span>
+          <span className="text-ink-soft"> — {p.label}</span>
+        </div>
+        <button
+          disabled={busyId === p.id}
+          onClick={() => handleRemove(p.id)}
+          className="text-xs text-declined hover:underline disabled:opacity-60"
+        >
+          {busyId === p.id ? "Removing…" : "Remove"}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="bg-white border border-line rounded-xl divide-y divide-line">
-        {periods.length === 0 && <p className="px-5 py-4 text-sm text-ink-soft">No blackout periods added.</p>}
-        {periods.map((p) => (
-          <div key={p.id} className="flex items-center justify-between px-5 py-3 text-sm">
-            <div>
-              <span className="font-mono">
-                {fmt(p.startDateKey)} – {fmt(p.endDateKeyInclusive)}
-              </span>
-              <span className="text-ink-soft"> — {p.label}</span>
-            </div>
-            <button
-              disabled={busyId === p.id}
-              onClick={() => handleRemove(p.id)}
-              className="text-xs text-declined hover:underline disabled:opacity-60"
-            >
-              {busyId === p.id ? "Removing…" : "Remove"}
-            </button>
-          </div>
-        ))}
+        {upcoming.length === 0 && <p className="px-5 py-4 text-sm text-ink-soft">No upcoming blackout periods added.</p>}
+        {upcoming.map(renderRow)}
       </div>
+
+      {past.length > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowPast((v) => !v)}
+            className="text-xs text-ink-soft hover:underline"
+          >
+            {showPast ? "Hide" : "Show"} {past.length} past period{past.length > 1 ? "s" : ""}
+          </button>
+          {showPast && (
+            <div className="mt-2 bg-page border border-line rounded-xl divide-y divide-line opacity-70">
+              {past.map(renderRow)}
+            </div>
+          )}
+        </div>
+      )}
 
       <form onSubmit={handleAdd} className="bg-white border border-line rounded-xl p-5 space-y-3">
         <h3 className="text-sm font-medium text-ink">Add a blackout period</h3>
