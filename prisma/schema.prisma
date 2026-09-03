@@ -32,6 +32,37 @@ model Organization {
   name      String
   createdAt DateTime @default(now())
 
+  // Branding — null means "use Galleywood's current hardcoded look", so
+  // nothing changes for the existing business until these are actually set.
+  // The app doesn't read or apply these yet; this just gets the data model
+  // ready for that (a later step).
+  logoUrl    String?
+  themeColor String? // hex, e.g. "#0E5F59"
+
+  // Which weekdays the business is open at all, independent of any one
+  // staff member's own rota — replaces the app's current hardcoded
+  // assumption that every business is closed on Sundays. Defaults here
+  // match Galleywood's actual pattern (closed Sunday, open every other day).
+  openSunday    Boolean @default(false)
+  openMonday    Boolean @default(true)
+  openTuesday   Boolean @default(true)
+  openWednesday Boolean @default(true)
+  openThursday  Boolean @default(true)
+  openFriday    Boolean @default(true)
+  openSaturday  Boolean @default(true)
+
+  // Statutory annual leave entitlement, in weeks. Defaults to the UK
+  // statutory minimum (5.6 weeks) — the figure currently hardcoded
+  // throughout the app — but becomes a real per-business setting instead,
+  // for a business with a different policy or in a different country.
+  //
+  // NOT yet covered by this step: a configurable bank holiday calendar
+  // (the app's list of UK bank holidays stays hardcoded for now) and
+  // Galleywood's own blackout-period policy (pre-Christmas, pre-Easter) —
+  // both are meaningfully bigger pieces of work, deliberately left out of
+  // this pass rather than half-solved.
+  statutoryLeaveWeeks Float @default(5.6)
+
   users            User[]
   leaveRequests    LeaveRequest[]    @relation("OrgLeaveRequests")
   extraClosedDates ExtraClosedDate[] @relation("OrgExtraClosedDates")
