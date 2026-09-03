@@ -21,7 +21,7 @@ export async function GET(req: Request) {
   const in14Days = new Date(now);
   in14Days.setUTCDate(in14Days.getUTCDate() + 14);
 
-  const organizations = await prisma.organization.findMany({ select: { id: true } });
+  const organizations = await prisma.organization.findMany({ select: { id: true, name: true } });
 
   let totalManagersNotified = 0;
 
@@ -40,6 +40,7 @@ export async function GET(req: Request) {
 
     await sendWeeklyDigestEmail({
       managerEmails: managers.map((m) => m.email),
+      organizationName: org.name,
       upcomingApproved: upcomingApproved.map((r) => ({
         name: r.user.name,
         startDate: r.startDate,

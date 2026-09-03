@@ -2,18 +2,24 @@ import { NextResponse } from "next/server";
 import PDFDocument from "pdfkit";
 import { requireManager } from "@/lib/require-manager";
 import { getMonthlyReport, type MonthlyStaffReport } from "@/lib/reports";
+import { getOrgBranding } from "@/lib/leave";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
 
+/** Strips anything unsafe for a downloaded filename, collapsing whitespace to single hyphens. */
+function sanitizeForFilename(name: string): string {
+  return name.trim().replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-]/g, "") || "Report";
+}
+
 const COLUMNS = ["Staff", "Rota hours", "Normal (worked)", "Overtime", "Total worked", "Annual leave", "Bank holiday", "Sick"];
 const COL_WIDTHS = [150, 75, 95, 70, 85, 75, 75, 60];
 const START_X = 40;
 const PAGE_BOTTOM = 500;
 
-function buildPdfBuffer(report: MonthlyStaffReport[], monthLabel: string): Promise<Buffer> {
+function buildPdfBuffer(report: MonthlyStaffReport[], monthLabel: string, organizationName: string): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 40, size: "A4", layout: "landscape" });
     const chunks: Buffer[] = [];
@@ -21,7 +27,7 @@ function buildPdfBuffer(report: MonthlyStaffReport[], monthLabel: string): Promi
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    doc.fontSize(16).font("Helvetica-Bold").text(`Galleywood Pharmacy — Report: ${monthLabel}`);
+    doc.fontSize(16).font("Helvetica-Bold").text(`${organizationName} — Report: ${monthLabel}`);
     doc.moveDown();
 
     let y = doc.y;
@@ -86,11 +92,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Missing or invalid year/month" }, { status: 400 });
   }
 
-  const report = await getMonthlyReport(year, month, session.user.organizationId);
+  const [report, branding] = await Promise.all([
+    getMonthlyReport(year, month, session.user.organizationId),
+    getOrgBranding(session.user.organizationId),
+  ]);
   const monthLabel = `${MONTH_NAMES[month - 1]} ${year}`;
-  const buffer = await buildPdfBuffer(report, monthLabel);
+  const buffer = await buildPdfBuffer(report, monthLabel, branding.name);
 
-  const filename = `Galleywood-Report-${MONTH_NAMES[month - 1]}-${year}.pdf`;
+  const filename = `${sanitizeForFilename(branding.name)}-Report-${MONTH_NAMES[month - 1]}-${year}.pdf`;
 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {

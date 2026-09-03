@@ -2,11 +2,17 @@ import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { requireManager } from "@/lib/require-manager";
 import { getMonthlyReport } from "@/lib/reports";
+import { getOrgBranding } from "@/lib/leave";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
+
+/** Strips anything unsafe for a downloaded filename, collapsing whitespace to single hyphens. */
+function sanitizeForFilename(name: string): string {
+  return name.trim().replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-]/g, "") || "Report";
+}
 
 export async function GET(req: Request) {
   const check = await requireManager();
@@ -21,7 +27,10 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Missing or invalid year/month" }, { status: 400 });
   }
 
-  const report = await getMonthlyReport(year, month, session.user.organizationId);
+  const [report, branding] = await Promise.all([
+    getMonthlyReport(year, month, session.user.organizationId),
+    getOrgBranding(session.user.organizationId),
+  ]);
 
   const rows = report.map((r) => ({
     Staff: r.name,
@@ -51,7 +60,7 @@ export async function GET(req: Request) {
 
   const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;
 
-  const filename = `Galleywood-Report-${MONTH_NAMES[month - 1]}-${year}.xlsx`;
+  const filename = `${sanitizeForFilename(branding.name)}-Report-${MONTH_NAMES[month - 1]}-${year}.xlsx`;
 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {

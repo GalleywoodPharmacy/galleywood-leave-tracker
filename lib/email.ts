@@ -61,6 +61,7 @@ export async function sendLeaveDecisionEmail(params: {
 
 export async function sendWeeklyDigestEmail(params: {
   managerEmails: string[];
+  organizationName: string;
   upcomingApproved: { name: string; startDate: Date; endDate: Date }[];
   coverageGapDates: Date[];
 }) {
@@ -72,7 +73,7 @@ export async function sendWeeklyDigestEmail(params: {
 
   await send(
     params.managerEmails,
-    "Weekly leave & coverage digest — Galleywood Pharmacy",
+    `Weekly leave & coverage digest — ${params.organizationName}`,
     `<h3>Upcoming approved leave</h3><ul>${leaveRows || "<li>None</li>"}</ul>
      <h3>Coverage gaps</h3><ul>${gapRows || "<li>None</li>"}</ul>
      <p><a href="${APP_URL}/coverage">View Coverage</a></p>`
