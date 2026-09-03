@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { getOrgBranding } from "@/lib/leave";
 import AppNav from "@/components/app-nav";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -14,11 +15,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default async function HelpPage() {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
+  if (!session || !session.user.organizationId) redirect("/login");
+
+  const branding = await getOrgBranding(session.user.organizationId);
 
   return (
     <div className="min-h-screen bg-page">
-      <AppNav isManager={session.user.isManager} />
+      <AppNav isManager={session.user.isManager} organizationName={branding.name} organizationLogoUrl={branding.logoUrl} />
 
       <main className="p-6 max-w-2xl mx-auto space-y-6">
         <h1 className="text-xl text-header">How this works</h1>

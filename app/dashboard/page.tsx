@@ -41,7 +41,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
     }),
     prisma.organization.findUniqueOrThrow({
       where: { id: organizationId },
-      select: { bankHolidaysIncludedInAllowance: true },
+      select: { bankHolidaysIncludedInAllowance: true, name: true, logoUrl: true },
     }),
   ]);
 
@@ -57,7 +57,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
 
   return (
     <div className="min-h-screen bg-page">
-      <AppNav isManager={session.user.isManager} />
+      <AppNav isManager={session.user.isManager} organizationName={organization.name} organizationLogoUrl={organization.logoUrl} />
 
       <main className="p-6 max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-3">

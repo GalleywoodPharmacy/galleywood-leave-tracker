@@ -27,7 +27,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-page">
-      <AppNav isManager={session.user.isManager} />
+      <AppNav isManager={session.user.isManager} organizationName={organization.name} organizationLogoUrl={organization.logoUrl} />
 
       <main className="p-6 max-w-4xl mx-auto space-y-8">
         <h1 className="text-xl text-header">Settings</h1>

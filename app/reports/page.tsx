@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { getMonthlyReport, getOpenSickLeave } from "@/lib/reports";
+import { getOrgBranding } from "@/lib/leave";
 import AppNav from "@/components/app-nav";
 import MonthSelect from "@/components/reports/month-select";
 import OpenSickLeaveBanner from "@/components/team/open-sick-leave-banner";
@@ -33,15 +34,16 @@ export default async function ReportsPage({
     years.sort((a, b) => a - b);
   }
 
-  const [report, openSickLeave] = await Promise.all([
+  const [report, openSickLeave, branding] = await Promise.all([
     getMonthlyReport(year, month, organizationId),
     getOpenSickLeave(organizationId),
+    getOrgBranding(organizationId),
   ]);
 
   return (
     <div className="min-h-screen bg-page print:bg-white">
       <div className="print:hidden">
-        <AppNav isManager={session.user.isManager} />
+        <AppNav isManager={session.user.isManager} organizationName={branding.name} organizationLogoUrl={branding.logoUrl} />
       </div>
 
       <main className="p-6 max-w-4xl mx-auto space-y-4">

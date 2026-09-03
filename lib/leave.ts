@@ -6,7 +6,6 @@ import {
   bankHolidayBreakdownForRota,
   type WeeklyRota,
   type BankHolidayBreakdownItem,
-  type OpenWeekdays,
 } from "./business-rules";
 
 export async function loadExtraClosedDates(organizationId: string): Promise<Map<string, string>> {
@@ -55,48 +54,28 @@ async function getOrgLeavePolicy(
   });
   return org;
 }
-
 /**
- * Which weekdays the business is open at all, independent of any one staff
- * member's own rota — used to correctly mark closed days regardless of what
- * hours any particular person happens to be scheduled.
+ * The business's display name and logo — used anywhere the app shows
+ * branding instead of a hardcoded "Galleywood Pharmacy". logoUrl is null
+ * until a manager sets one in Business settings.
  */
-export async function getOrgOpenWeekdays(organizationId: string): Promise<OpenWeekdays> {
-  const org = await prisma.organization.findUniqueOrThrow({
+export async function getOrgBranding(organizationId: string): Promise<{ name: string; logoUrl: string | null }> {
+  return prisma.organization.findUniqueOrThrow({
     where: { id: organizationId },
-    select: {
-      openSunday: true,
-      openMonday: true,
-      openTuesday: true,
-      openWednesday: true,
-      openThursday: true,
-      openFriday: true,
-      openSaturday: true,
-    },
+    select: { name: true, logoUrl: true },
   });
-  return {
-    sun: org.openSunday,
-    mon: org.openMonday,
-    tue: org.openTuesday,
-    wed: org.openWednesday,
-    thu: org.openThursday,
-    fri: org.openFriday,
-    sat: org.openSaturday,
-  };
 }
-
 export async function computeHoursForRangeForUser(
   userId: string,
   startDate: Date,
   endDate: Date,
   organizationId: string
 ): Promise<number> {
-  const [extraClosedDates, rota, openWeekdays] = await Promise.all([
+  const [extraClosedDates, rota] = await Promise.all([
     loadExtraClosedDates(organizationId),
     getRotaForUser(userId, organizationId),
-    getOrgOpenWeekdays(organizationId),
   ]);
-  return calculateLeaveHoursForRota(startDate, endDate, extraClosedDates, rota, openWeekdays);
+  return calculateLeaveHoursForRota(startDate, endDate, extraClosedDates, rota);
 }
 
 export async function computeStatutoryAnnualHoursForUser(

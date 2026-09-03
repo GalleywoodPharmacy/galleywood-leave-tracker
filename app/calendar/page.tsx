@@ -4,7 +4,7 @@ import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getMonthCalendarData } from "@/lib/calendar";
-import { getOrgOpenWeekdays } from "@/lib/leave";
+import { getOrgOpenWeekdays, getOrgBranding } from "@/lib/leave";
 import { getBlackoutPeriods } from "@/lib/business-rules";
 import AppNav from "@/components/app-nav";
 import MonthGrid from "@/components/calendar/month-grid";
@@ -32,7 +32,7 @@ export default async function CalendarPage({
   const selStart = searchParams.selStart ?? null;
   const selEnd = searchParams.selEnd ?? null;
 
-  const [{ byDate, extraClosedDates }, staffList, openWeekdays] = await Promise.all([
+  const [{ byDate, extraClosedDates }, staffList, openWeekdays, branding] = await Promise.all([
     getMonthCalendarData(year, month, organizationId),
     prisma.user.findMany({
       where: { isDemo: false, organizationId },
@@ -40,6 +40,7 @@ export default async function CalendarPage({
       orderBy: { name: "asc" },
     }),
     getOrgOpenWeekdays(organizationId),
+    getOrgBranding(organizationId),
   ]);
 
   // The visible grid can show a few days from the adjacent year (e.g.
@@ -63,7 +64,7 @@ export default async function CalendarPage({
   return (
     <div className="min-h-screen bg-page print:bg-white">
       <div className="print:hidden">
-        <AppNav isManager={session.user.isManager} />
+        <AppNav isManager={session.user.isManager} organizationName={branding.name} organizationLogoUrl={branding.logoUrl} />
       </div>
 
       <main className="p-6 max-w-6xl mx-auto space-y-4">

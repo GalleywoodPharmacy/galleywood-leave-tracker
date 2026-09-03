@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getAllStaffBalances } from "@/lib/leave";
+import { getAllStaffBalances, getOrgBranding } from "@/lib/leave";
 import { getOpenSickLeave } from "@/lib/reports";
 import AppNav from "@/components/app-nav";
 import YearSelect from "@/components/year-select";
@@ -56,7 +56,7 @@ export default async function TeamPage({ searchParams }: { searchParams: { year?
     yearOptions.sort((a, b) => a - b);
   }
 
-  const [pending, allRequests, staffBalances, openSickLeave] = await Promise.all([
+  const [pending, allRequests, staffBalances, openSickLeave, branding] = await Promise.all([
     prisma.leaveRequest.findMany({
       where: { status: "pending", organizationId },
       include: { user: { select: { name: true, email: true } }, decidedBy: { select: { name: true } } },
@@ -69,11 +69,12 @@ export default async function TeamPage({ searchParams }: { searchParams: { year?
     }),
     getAllStaffBalances(selectedYear, organizationId),
     getOpenSickLeave(organizationId),
+    getOrgBranding(organizationId),
   ]);
 
   return (
     <div className="min-h-screen bg-page">
-      <AppNav isManager={session.user.isManager} />
+      <AppNav isManager={session.user.isManager} organizationName={branding.name} organizationLogoUrl={branding.logoUrl} />
 
       <main className="p-6 max-w-5xl mx-auto space-y-8">
         <h1 className="text-xl text-header">Team &amp; Approvals</h1>

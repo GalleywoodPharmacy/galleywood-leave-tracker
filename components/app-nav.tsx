@@ -14,7 +14,15 @@ const LINKS = [
 
 const HELP_LINK = { href: "/help", label: "Help", icon: HelpIcon };
 
-export default function AppNav({ isManager }: { isManager: boolean }) {
+export default function AppNav({
+  isManager,
+  organizationName,
+  organizationLogoUrl,
+}: {
+  isManager: boolean;
+  organizationName: string;
+  organizationLogoUrl: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const links = isManager
     ? [
@@ -29,7 +37,13 @@ export default function AppNav({ isManager }: { isManager: boolean }) {
   return (
     <header className="bg-header text-white">
       <div className="px-6 py-4 flex items-center justify-between">
-        <span className="font-medium">Galleywood Pharmacy</span>
+        <span className="font-medium flex items-center gap-2 min-w-0">
+          {organizationLogoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={organizationLogoUrl} alt="" className="h-6 w-6 rounded object-contain bg-white/10 shrink-0" />
+          )}
+          <span className="truncate">{organizationName}</span>
+        </span>
 
         {/* Desktop nav — hidden below md, everything fits on one line above that */}
         <nav className="hidden md:flex items-center gap-4 text-sm">

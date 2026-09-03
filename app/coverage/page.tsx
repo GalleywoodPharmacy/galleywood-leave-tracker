@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { getNeedsCoverage } from "@/lib/coverage";
+import { getOrgBranding } from "@/lib/leave";
 import AppNav from "@/components/app-nav";
 import NeedsCoverageList from "@/components/coverage/needs-coverage-list";
 
@@ -9,11 +10,14 @@ export default async function CoveragePage() {
   const session = await getServerSession(authOptions);
   if (!session || !session.user.organizationId) redirect("/login");
 
-  const needsCoverage = await getNeedsCoverage(session.user.organizationId, 60, session.user.id);
+  const [needsCoverage, branding] = await Promise.all([
+    getNeedsCoverage(session.user.organizationId, 60, session.user.id),
+    getOrgBranding(session.user.organizationId),
+  ]);
 
   return (
     <div className="min-h-screen bg-page">
-      <AppNav isManager={session.user.isManager} />
+      <AppNav isManager={session.user.isManager} organizationName={branding.name} organizationLogoUrl={branding.logoUrl} />
 
       <main className="p-6 max-w-2xl mx-auto space-y-6">
         <h1 className="text-xl text-header">Coverage</h1>
