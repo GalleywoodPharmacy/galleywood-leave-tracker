@@ -37,10 +37,13 @@ export const authOptions: NextAuthOptions = {
         if (!valid) return null;
 
         // A demo/trial login never keeps real data around: wipe its own
-        // leave requests clean on every sign-in, so each person who tries
-        // it starts from the same blank slate.
+        // leave requests and overtime entries clean on every sign-in, so
+        // each person who tries it starts from the same blank slate.
         if (user.isDemo) {
-          await prisma.leaveRequest.deleteMany({ where: { userId: user.id } });
+          await Promise.all([
+            prisma.leaveRequest.deleteMany({ where: { userId: user.id } }),
+            prisma.overtimeEntry.deleteMany({ where: { userId: user.id } }),
+          ]);
         }
 
         return {
