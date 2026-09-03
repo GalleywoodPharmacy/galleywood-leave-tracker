@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { loadExtraClosedDates } from "./leave";
+import { loadExtraClosedDates, getOrgOpenWeekdays } from "./leave";
 import { getClosedReason } from "./business-rules";
 import type { CoverInfo } from "./cover";
 
@@ -35,7 +35,7 @@ export async function getNeedsCoverage(
   const start = todayUTC();
   const end = addDays(start, daysAhead);
 
-  const [approvedLeave, extraClosedDates] = await Promise.all([
+  const [approvedLeave, extraClosedDates, openWeekdays] = await Promise.all([
     prisma.leaveRequest.findMany({
       where: {
         organizationId,
@@ -47,6 +47,7 @@ export async function getNeedsCoverage(
       include: { user: { select: { name: true } } },
     }),
     loadExtraClosedDates(organizationId),
+    getOrgOpenWeekdays(organizationId),
   ]);
 
   const result: NeedsCoverageDay[] = [];
@@ -58,7 +59,7 @@ export async function getNeedsCoverage(
     const rangeEnd = r.endDate.getTime() < end.getTime() ? r.endDate : end;
     let cursor = new Date(rangeStart);
     while (cursor.getTime() <= rangeEnd.getTime()) {
-      if (!getClosedReason(cursor, extraClosedDates).closed) {
+      if (!getClosedReason(cursor, extraClosedDates, openWeekdays).closed) {
         const dk = dayKey(cursor);
         const cover = overrides[dk] ?? periodCover;
         if (!cover) {

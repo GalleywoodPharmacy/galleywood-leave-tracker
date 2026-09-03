@@ -4,6 +4,7 @@ import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getMonthCalendarData } from "@/lib/calendar";
+import { getOrgOpenWeekdays } from "@/lib/leave";
 import { getBlackoutPeriods } from "@/lib/business-rules";
 import AppNav from "@/components/app-nav";
 import MonthGrid from "@/components/calendar/month-grid";
@@ -31,13 +32,14 @@ export default async function CalendarPage({
   const selStart = searchParams.selStart ?? null;
   const selEnd = searchParams.selEnd ?? null;
 
-  const [{ byDate, extraClosedDates }, staffList] = await Promise.all([
+  const [{ byDate, extraClosedDates }, staffList, openWeekdays] = await Promise.all([
     getMonthCalendarData(year, month, organizationId),
     prisma.user.findMany({
       where: { isDemo: false, organizationId },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
+    getOrgOpenWeekdays(organizationId),
   ]);
 
   // The visible grid can show a few days from the adjacent year (e.g.
@@ -130,6 +132,7 @@ export default async function CalendarPage({
               staffList={staffList}
               selStart={selStart}
               selEnd={selEnd}
+              openWeekdays={openWeekdays}
             />
           </div>
           <div className="print:hidden space-y-4">

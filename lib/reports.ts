@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { DEFAULT_ROTA, loadExtraClosedDates } from "./leave";
+import { DEFAULT_ROTA, loadExtraClosedDates, getOrgOpenWeekdays } from "./leave";
 import { calculateLeaveHoursForRota, bankHolidayBreakdownForRota, type WeeklyRota } from "./business-rules";
 
 export type OpenSickLeave = { requestId: string; name: string; startDate: string };
@@ -74,7 +74,7 @@ export async function getMonthlyReport(year: number, month: number, organization
   const monthEnd = new Date(Date.UTC(year, month, 0));
   const monthKey = `${year}-${String(month).padStart(2, "0")}`;
 
-  const [users, extraClosedDates, leaveRequests, overtimeEntries] = await Promise.all([
+  const [users, extraClosedDates, leaveRequests, overtimeEntries, openWeekdays] = await Promise.all([
     prisma.user.findMany({ where: { isDemo: false, organizationId }, orderBy: { name: "asc" }, include: { rota: true } }),
     loadExtraClosedDates(organizationId),
     prisma.leaveRequest.findMany({
@@ -88,6 +88,7 @@ export async function getMonthlyReport(year: number, month: number, organization
     prisma.overtimeEntry.findMany({
       where: { organizationId, date: { gte: monthStart, lte: monthEnd } },
     }),
+    getOrgOpenWeekdays(organizationId),
   ]);
 
   return users.map((u) => {
@@ -116,7 +117,7 @@ export async function getMonthlyReport(year: number, month: number, organization
     for (const r of leaveRequests.filter((r) => r.userId === u.id)) {
       const clipStart = r.startDate.getTime() > monthStart.getTime() ? r.startDate : monthStart;
       const clipEnd = r.endDate.getTime() < monthEnd.getTime() ? r.endDate : monthEnd;
-      const hours = calculateLeaveHoursForRota(clipStart, clipEnd, extraClosedDates, rota);
+      const hours = calculateLeaveHoursForRota(clipStart, clipEnd, extraClosedDates, rota, openWeekdays);
       if (r.type === "sick") sickHours += hours;
       else annualLeaveHours += hours;
     }

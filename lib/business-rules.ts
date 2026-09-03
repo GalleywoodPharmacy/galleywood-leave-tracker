@@ -6,7 +6,7 @@
 
 export type ClosedReason =
   | { closed: false }
-  | { closed: true; reason: "sunday" | "bank-holiday" | "extra-closure"; label: string };
+  | { closed: true; reason: "closed-weekday" | "bank-holiday" | "extra-closure"; label: string };
 
 /** Opening hours per weekday, per spec. Sunday = closed. */
 const HOURS_BY_WEEKDAY: Record<number, number> = {
@@ -128,13 +128,50 @@ export function englandBankHolidays(year: number): Map<string, string> {
   return holidays;
 }
 
+/** Which weekdays the business is open at all — independent of any one staff member's own rota. */
+export type OpenWeekdays = {
+  sun: boolean;
+  mon: boolean;
+  tue: boolean;
+  wed: boolean;
+  thu: boolean;
+  fri: boolean;
+  sat: boolean;
+};
+
+/** Matches the app's original hardcoded assumption (open every day except Sunday), used whenever a caller doesn't pass the business's real setting. */
+const DEFAULT_OPEN_WEEKDAYS: OpenWeekdays = {
+  sun: false,
+  mon: true,
+  tue: true,
+  wed: true,
+  thu: true,
+  fri: true,
+  sat: true,
+};
+
+const WEEKDAY_KEYS: (keyof OpenWeekdays)[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+const WEEKDAY_LABELS: Record<keyof OpenWeekdays, string> = {
+  sun: "Sunday",
+  mon: "Monday",
+  tue: "Tuesday",
+  wed: "Wednesday",
+  thu: "Thursday",
+  fri: "Friday",
+  sat: "Saturday",
+};
+
 /**
  * Determine whether a date is closed, per priority:
- * ExtraClosedDate > bank holiday > Sunday.
+ * ExtraClosedDate > bank holiday > a weekday the business doesn't open on.
  * extraClosedDates: Map of "YYYY-MM-DD" -> label, passed in by the caller
  * (loaded from the ExtraClosedDate table).
  */
-export function getClosedReason(date: Date, extraClosedDates: Map<string, string>): ClosedReason {
+export function getClosedReason(
+  date: Date,
+  extraClosedDates: Map<string, string>,
+  openWeekdays: OpenWeekdays = DEFAULT_OPEN_WEEKDAYS
+): ClosedReason {
   const d = toUTCDate(date);
   const key = d.toISOString().slice(0, 10);
 
@@ -147,33 +184,43 @@ export function getClosedReason(date: Date, extraClosedDates: Map<string, string
     return { closed: true, reason: "bank-holiday", label: bankHolidays.get(key)! };
   }
 
-  if (d.getUTCDay() === 0) {
-    return { closed: true, reason: "sunday", label: "Sunday" };
+  const weekdayKey = WEEKDAY_KEYS[d.getUTCDay()];
+  if (!openWeekdays[weekdayKey]) {
+    return { closed: true, reason: "closed-weekday", label: WEEKDAY_LABELS[weekdayKey] };
   }
 
   return { closed: false };
 }
 
 /** Opening hours for a single date, respecting closed-day priority. 0 if closed. */
-export function hoursForDate(date: Date, extraClosedDates: Map<string, string>): number {
-  const closed = getClosedReason(date, extraClosedDates);
+export function hoursForDate(
+  date: Date,
+  extraClosedDates: Map<string, string>,
+  openWeekdays: OpenWeekdays = DEFAULT_OPEN_WEEKDAYS
+): number {
+  const closed = getClosedReason(date, extraClosedDates, openWeekdays);
   if (closed.closed) return 0;
   return HOURS_BY_WEEKDAY[toUTCDate(date).getUTCDay()];
 }
 
 /**
  * Total leave hours for an inclusive date range, per the opening-hours rules.
- * Closed days (Sundays, bank holidays, extra closures) contribute 0 and are
- * excluded from the total.
+ * Closed days (weekdays the business doesn't open, bank holidays, extra
+ * closures) contribute 0 and are excluded from the total.
  */
-export function calculateLeaveHours(startDate: Date, endDate: Date, extraClosedDates: Map<string, string>): number {
+export function calculateLeaveHours(
+  startDate: Date,
+  endDate: Date,
+  extraClosedDates: Map<string, string>,
+  openWeekdays: OpenWeekdays = DEFAULT_OPEN_WEEKDAYS
+): number {
   let total = 0;
   let cursor = toUTCDate(startDate);
   const end = toUTCDate(endDate);
   // Safety cap so a bad input can't loop forever.
   let guard = 0;
   while (cursor.getTime() <= end.getTime() && guard < 3660) {
-    total += hoursForDate(cursor, extraClosedDates);
+    total += hoursForDate(cursor, extraClosedDates, openWeekdays);
     cursor = addDays(cursor, 1);
     guard++;
   }
@@ -194,11 +241,17 @@ export type WeeklyRota = {
 /**
  * A single day's leave hours for a specific person, using their own rota
  * instead of the pharmacy's blanket opening hours. Still 0 on any closed
- * day (Sunday/bank holiday/extra closure) regardless of what their rota says
- * — nobody is scheduled to work a day the pharmacy is shut.
+ * day (a weekday the business doesn't open, bank holiday, extra closure)
+ * regardless of what their rota says — nobody is scheduled to work a day
+ * the business is shut.
  */
-export function hoursForDateForRota(date: Date, extraClosedDates: Map<string, string>, rota: WeeklyRota): number {
-  const closed = getClosedReason(date, extraClosedDates);
+export function hoursForDateForRota(
+  date: Date,
+  extraClosedDates: Map<string, string>,
+  rota: WeeklyRota,
+  openWeekdays: OpenWeekdays = DEFAULT_OPEN_WEEKDAYS
+): number {
+  const closed = getClosedReason(date, extraClosedDates, openWeekdays);
   if (closed.closed) return 0;
   const byWeekday = [rota.sun, rota.mon, rota.tue, rota.wed, rota.thu, rota.fri, rota.sat];
   return byWeekday[toUTCDate(date).getUTCDay()];
@@ -213,14 +266,15 @@ export function calculateLeaveHoursForRota(
   startDate: Date,
   endDate: Date,
   extraClosedDates: Map<string, string>,
-  rota: WeeklyRota
+  rota: WeeklyRota,
+  openWeekdays: OpenWeekdays = DEFAULT_OPEN_WEEKDAYS
 ): number {
   let total = 0;
   let cursor = toUTCDate(startDate);
   const end = toUTCDate(endDate);
   let guard = 0;
   while (cursor.getTime() <= end.getTime() && guard < 3660) {
-    total += hoursForDateForRota(cursor, extraClosedDates, rota);
+    total += hoursForDateForRota(cursor, extraClosedDates, rota, openWeekdays);
     cursor = addDays(cursor, 1);
     guard++;
   }
@@ -351,8 +405,17 @@ export function calculateStatutoryAnnualHours(
   return Math.max(0, Math.round((proRatedEntitlement - closureHoursOnWorkingDays) * 10) / 10);
 }
 
+/** A named date range shown greyed-out on the calendar (not a closure — the pharmacy is still open, staff still work). */
 export type BlackoutPeriod = { startDateKey: string; endDateKeyInclusive: string; label: string };
 
+/**
+ * Yearly blackout periods, computed fresh each year so they track moving
+ * dates automatically (Easter shifts; Christmas doesn't):
+ *   - Pre-Christmas: 11–24 December (the 2 weeks up to Christmas Day itself)
+ *   - Pre-Easter: the 7 days ending the day before Good Friday
+ * Neither range overlaps a bank holiday by design — both stop the day
+ * before the closure starts.
+ */
 export function getBlackoutPeriods(year: number): BlackoutPeriod[] {
   const key = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -374,6 +437,7 @@ export function getBlackoutPeriods(year: number): BlackoutPeriod[] {
   ];
 }
 
+/** Which blackout period (if any) a given "YYYY-MM-DD" date falls in, across the periods passed in. */
 export function getBlackoutLabelForDate(dateKey: string, periods: BlackoutPeriod[]): string | null {
   for (const p of periods) {
     if (dateKey >= p.startDateKey && dateKey <= p.endDateKeyInclusive) return p.label;
@@ -381,12 +445,17 @@ export function getBlackoutLabelForDate(dateKey: string, periods: BlackoutPeriod
   return null;
 }
 
+/** Which of the two alternating Saturday teams is working, and which colour to show them in. */
 export type SaturdayTeam = { names: string[]; color: "flamingo" | "banana" };
 
-const SATURDAY_TEAM_ANCHOR = "2026-08-29";
+// 29 Sept 2026 is a Saturday — Team A (flamingo) works that day. The
+// following Saturday is Team B (banana), then it keeps alternating both
+// forward and backward from this anchor date indefinitely.
+const SATURDAY_TEAM_ANCHOR = "2026-09-29";
 const SATURDAY_TEAM_A = ["Anna", "Kirsty", "Irma", "Chloe"];
 const SATURDAY_TEAM_B = ["Aleks", "Hayley", "Chloe"];
 
+/** Returns null for any date that isn't a Saturday. */
 export function getSaturdayTeam(date: Date): SaturdayTeam | null {
   if (date.getUTCDay() !== 6) return null;
   const anchor = new Date(SATURDAY_TEAM_ANCHOR + "T00:00:00.000Z");
