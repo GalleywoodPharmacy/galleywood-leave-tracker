@@ -27,13 +27,18 @@ export type NeedsCoverageDay = { requestId: string; dateKey: string; date: Date;
  * entirely — they still see it (and can add cover) on the Calendar as
  * normal; this just keeps their own gaps out of this flagged list.
  */
-export async function getNeedsCoverage(daysAhead = 60, excludeUserId?: string): Promise<NeedsCoverageDay[]> {
+export async function getNeedsCoverage(
+  organizationId: string,
+  daysAhead = 60,
+  excludeUserId?: string
+): Promise<NeedsCoverageDay[]> {
   const start = todayUTC();
   const end = addDays(start, daysAhead);
 
   const [approvedLeave, extraClosedDates] = await Promise.all([
     prisma.leaveRequest.findMany({
       where: {
+        organizationId,
         status: "approved",
         startDate: { lte: end },
         endDate: { gte: start },
@@ -41,7 +46,7 @@ export async function getNeedsCoverage(daysAhead = 60, excludeUserId?: string): 
       },
       include: { user: { select: { name: true } } },
     }),
-    loadExtraClosedDates(),
+    loadExtraClosedDates(organizationId),
   ]);
 
   const result: NeedsCoverageDay[] = [];

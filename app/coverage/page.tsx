@@ -7,9 +7,9 @@ import NeedsCoverageList from "@/components/coverage/needs-coverage-list";
 
 export default async function CoveragePage() {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
+  if (!session || !session.user.organizationId) redirect("/login");
 
-  const needsCoverage = await getNeedsCoverage(60, session.user.id);
+  const needsCoverage = await getNeedsCoverage(session.user.organizationId, 60, session.user.id);
 
   return (
     <div className="min-h-screen bg-page">

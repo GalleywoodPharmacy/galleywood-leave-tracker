@@ -22,7 +22,8 @@ export default async function CalendarPage({
   searchParams: { year?: string; month?: string; selStart?: string; selEnd?: string };
 }) {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
+  if (!session || !session.user.organizationId) redirect("/login");
+  const organizationId = session.user.organizationId;
 
   const now = new Date();
   const year = searchParams.year ? parseInt(searchParams.year, 10) : now.getUTCFullYear();
@@ -31,8 +32,12 @@ export default async function CalendarPage({
   const selEnd = searchParams.selEnd ?? null;
 
   const [{ byDate, extraClosedDates }, staffList] = await Promise.all([
-    getMonthCalendarData(year, month),
-    prisma.user.findMany({ where: { isDemo: false }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    getMonthCalendarData(year, month, organizationId),
+    prisma.user.findMany({
+      where: { isDemo: false, organizationId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   // The visible grid can show a few days from the adjacent year (e.g.

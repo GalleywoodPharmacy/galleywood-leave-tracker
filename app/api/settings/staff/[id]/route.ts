@@ -8,11 +8,17 @@ import { hashPassword } from "@/lib/password";
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const check = await requireManager();
   if (check instanceof NextResponse) return check;
+  const session = check;
+  if (!session.user.organizationId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const organizationId = session.user.organizationId;
+
+  const target = await prisma.user.findFirst({ where: { id: params.id, organizationId }, select: { id: true } });
+  if (!target) return NextResponse.json({ error: "Staff member not found" }, { status: 404 });
 
   const { searchParams } = new URL(req.url);
   const year = parseInt(searchParams.get("year") ?? String(new Date().getFullYear()), 10);
 
-  const suggestedAnnualHours = await computeStatutoryAnnualHoursForUser(params.id, year);
+  const suggestedAnnualHours = await computeStatutoryAnnualHoursForUser(params.id, year, organizationId);
   return NextResponse.json({ suggestedAnnualHours, year });
 }
 
@@ -30,6 +36,12 @@ const updateSchema = z.object({
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const check = await requireManager();
   if (check instanceof NextResponse) return check;
+  const session = check;
+  if (!session.user.organizationId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const organizationId = session.user.organizationId;
+
+  const target = await prisma.user.findFirst({ where: { id: params.id, organizationId } });
+  if (!target) return NextResponse.json({ error: "Staff member not found" }, { status: 404 });
 
   const parsed = updateSchema.safeParse(await req.json());
   if (!parsed.success) {
@@ -37,9 +49,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
 
   if (parsed.data.isManager === false) {
-    const managerCount = await prisma.user.count({ where: { isManager: true } });
-    const target = await prisma.user.findUnique({ where: { id: params.id } });
-    if (target?.isManager && managerCount <= 1) {
+    const managerCount = await prisma.user.count({ where: { isManager: true, organizationId } });
+    if (target.isManager && managerCount <= 1) {
       return NextResponse.json({ error: "There must be at least one manager." }, { status: 400 });
     }
   }
@@ -90,14 +101,18 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   const check = await requireManager();
   if (check instanceof NextResponse) return check;
   const session = check;
+  if (!session.user.organizationId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const organizationId = session.user.organizationId;
 
   if (params.id === session.user.id) {
     return NextResponse.json({ error: "You can't remove your own account." }, { status: 400 });
   }
 
-  const target = await prisma.user.findUnique({ where: { id: params.id } });
-  if (target?.isManager) {
-    const managerCount = await prisma.user.count({ where: { isManager: true } });
+  const target = await prisma.user.findFirst({ where: { id: params.id, organizationId } });
+  if (!target) return NextResponse.json({ error: "Staff member not found" }, { status: 404 });
+
+  if (target.isManager) {
+    const managerCount = await prisma.user.count({ where: { isManager: true, organizationId } });
     if (managerCount <= 1) {
       return NextResponse.json({ error: "There must be at least one manager." }, { status: 400 });
     }

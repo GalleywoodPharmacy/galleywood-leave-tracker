@@ -11,7 +11,7 @@ const schema = z.object({
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!session || !session.user.organizationId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
   const parsed = schema.safeParse(await req.json());
   if (!parsed.success) {
@@ -26,6 +26,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ hours: 0 });
   }
 
-  const hours = await computeHoursForRangeForUser(session.user.id, start, end);
+  const hours = await computeHoursForRangeForUser(session.user.id, start, end, session.user.organizationId);
   return NextResponse.json({ hours });
 }

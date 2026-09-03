@@ -21,6 +21,8 @@ export async function POST(req: Request) {
   const check = await requireManager();
   if (check instanceof NextResponse) return check;
   const session = check;
+  if (!session.user.organizationId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const organizationId = session.user.organizationId;
 
   const parsed = createSchema.safeParse(await req.json());
   if (!parsed.success) {
@@ -29,14 +31,14 @@ export async function POST(req: Request) {
 
   const { userId, startDate, endDate, notes, openEnded } = parsed.data;
 
-  const staffMember = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+  const staffMember = await prisma.user.findFirst({ where: { id: userId, organizationId }, select: { id: true } });
   if (!staffMember) {
     return NextResponse.json({ error: "That staff member wasn't found." }, { status: 400 });
   }
 
   const start = new Date(startDate);
   const end = new Date(endDate);
-  const hours = await computeHoursForRangeForUser(userId, start, end);
+  const hours = await computeHoursForRangeForUser(userId, start, end, organizationId);
 
   if (hours <= 0) {
     return NextResponse.json(
@@ -48,6 +50,7 @@ export async function POST(req: Request) {
   const request = await prisma.leaveRequest.create({
     data: {
       userId,
+      organizationId,
       type: "sick",
       startDate: start,
       endDate: end,

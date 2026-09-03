@@ -42,8 +42,9 @@ function serialize(r: {
 
 export default async function TeamPage({ searchParams }: { searchParams: { year?: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
+  if (!session || !session.user.organizationId) redirect("/login");
   if (!session.user.isManager) redirect("/dashboard");
+  const organizationId = session.user.organizationId;
 
   const now = new Date();
   const currentYear = now.getUTCFullYear();
@@ -57,16 +58,17 @@ export default async function TeamPage({ searchParams }: { searchParams: { year?
 
   const [pending, allRequests, staffBalances, openSickLeave] = await Promise.all([
     prisma.leaveRequest.findMany({
-      where: { status: "pending" },
+      where: { status: "pending", organizationId },
       include: { user: { select: { name: true, email: true } }, decidedBy: { select: { name: true } } },
       orderBy: { submittedAt: "asc" },
     }),
     prisma.leaveRequest.findMany({
+      where: { organizationId },
       include: { user: { select: { name: true, email: true } }, decidedBy: { select: { name: true } } },
       orderBy: { submittedAt: "desc" },
     }),
-    getAllStaffBalances(selectedYear),
-    getOpenSickLeave(),
+    getAllStaffBalances(selectedYear, organizationId),
+    getOpenSickLeave(organizationId),
   ]);
 
   return (

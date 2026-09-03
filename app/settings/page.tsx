@@ -10,16 +10,17 @@ import RotaManager from "@/components/settings/rota-manager";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
+  if (!session || !session.user.organizationId) redirect("/login");
   if (!session.user.isManager) redirect("/dashboard");
+  const organizationId = session.user.organizationId;
 
   const currentYear = new Date().getUTCFullYear();
   const years = [currentYear, currentYear + 1, currentYear + 2];
 
   const [staff, closedDates, staffRotas] = await Promise.all([
-    getAllStaffAnnualAllowances(years),
-    prisma.extraClosedDate.findMany({ orderBy: { date: "asc" } }),
-    getAllStaffRotas(),
+    getAllStaffAnnualAllowances(years, organizationId),
+    prisma.extraClosedDate.findMany({ where: { organizationId }, orderBy: { date: "asc" } }),
+    getAllStaffRotas(organizationId),
   ]);
 
   return (

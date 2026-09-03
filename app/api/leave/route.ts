@@ -8,10 +8,10 @@ import { sendLeaveSubmittedEmail } from "@/lib/email";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!session || !session.user.organizationId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
   const requests = await prisma.leaveRequest.findMany({
-    where: { userId: session.user.id },
+    where: { userId: session.user.id, organizationId: session.user.organizationId },
     orderBy: { submittedAt: "desc" },
   });
 
@@ -32,7 +32,8 @@ const createSchema = z
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!session || !session.user.organizationId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const organizationId = session.user.organizationId;
 
   const body = await req.json();
   const parsed = createSchema.safeParse(body);
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
   const start = new Date(startDate);
   const end = new Date(endDate);
 
-  const autoHours = await computeHoursForRangeForUser(session.user.id, start, end);
+  const autoHours = await computeHoursForRangeForUser(session.user.id, start, end, organizationId);
   const hours = parsed.data.hours ?? autoHours;
 
   if (hours <= 0) {
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const balance = await getBalance(session.user.id, start.getUTCFullYear());
+  const balance = await getBalance(session.user.id, start.getUTCFullYear(), organizationId);
   if (hours > balance.remainingHours) {
     return NextResponse.json(
       { error: `That request needs ${hours}h but only ${balance.remainingHours}h remain for ${start.getUTCFullYear()}.` },
@@ -65,6 +66,7 @@ export async function POST(req: Request) {
   const request = await prisma.leaveRequest.create({
     data: {
       userId: session.user.id,
+      organizationId,
       startDate: start,
       endDate: end,
       hours,
@@ -73,7 +75,7 @@ export async function POST(req: Request) {
     },
   });
 
-  const managers = await prisma.user.findMany({ where: { isManager: true }, select: { email: true } });
+  const managers = await prisma.user.findMany({ where: { isManager: true, organizationId }, select: { email: true } });
   await sendLeaveSubmittedEmail({
     managerEmails: managers.map((m) => m.email),
     requesterName: session.user.name ?? "A staff member",

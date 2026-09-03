@@ -12,7 +12,7 @@ const createSchema = z.object({
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!session || !session.user.organizationId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
   const parsed = createSchema.safeParse(await req.json());
   if (!parsed.success) {
@@ -22,6 +22,7 @@ export async function POST(req: Request) {
   const entry = await prisma.overtimeEntry.create({
     data: {
       userId: session.user.id,
+      organizationId: session.user.organizationId,
       date: new Date(parsed.data.date),
       hours: parsed.data.hours,
       notes: parsed.data.notes || null,

@@ -16,6 +16,12 @@ const schema = z.object({
 export async function PUT(req: Request, { params }: { params: { userId: string } }) {
   const check = await requireManager();
   if (check instanceof NextResponse) return check;
+  const session = check;
+  if (!session.user.organizationId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const organizationId = session.user.organizationId;
+
+  const target = await prisma.user.findFirst({ where: { id: params.userId, organizationId }, select: { id: true } });
+  if (!target) return NextResponse.json({ error: "Staff member not found" }, { status: 404 });
 
   const parsed = schema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: "Invalid rota — hours must be 0 or more" }, { status: 400 });
@@ -35,6 +41,7 @@ export async function PUT(req: Request, { params }: { params: { userId: string }
     },
     create: {
       userId: params.userId,
+      organizationId,
       sundayHours: sun,
       mondayHours: mon,
       tuesdayHours: tue,

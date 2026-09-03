@@ -35,22 +35,23 @@ function addDays(d: Date, n: number) {
   return copy;
 }
 
-export async function getMonthCalendarData(year: number, month: number) {
+export async function getMonthCalendarData(year: number, month: number, organizationId: string) {
   const monthStart = new Date(Date.UTC(year, month - 1, 1));
   const monthEnd = new Date(Date.UTC(year, month, 0));
 
   const [leaveRequests, extraClosedDates, overtimeEntries] = await Promise.all([
     prisma.leaveRequest.findMany({
       where: {
+        organizationId,
         status: { in: ["pending", "approved", "denied"] },
         startDate: { lte: monthEnd },
         endDate: { gte: monthStart },
       },
       include: { user: { select: { name: true } } },
     }),
-    loadExtraClosedDates(),
+    loadExtraClosedDates(organizationId),
     prisma.overtimeEntry.findMany({
-      where: { date: { gte: monthStart, lte: monthEnd } },
+      where: { organizationId, date: { gte: monthStart, lte: monthEnd } },
       include: { user: { select: { name: true } } },
       orderBy: { date: "asc" },
     }),

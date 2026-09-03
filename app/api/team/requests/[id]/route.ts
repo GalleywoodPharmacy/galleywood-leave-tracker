@@ -19,9 +19,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const check = await requireManager();
   if (check instanceof NextResponse) return check;
   const session = check;
+  if (!session.user.organizationId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const organizationId = session.user.organizationId;
 
-  const existing = await prisma.leaveRequest.findUnique({
-    where: { id: params.id },
+  const existing = await prisma.leaveRequest.findFirst({
+    where: { id: params.id, organizationId },
     include: { user: true },
   });
   if (!existing) return NextResponse.json({ error: "Request not found" }, { status: 404 });
@@ -73,10 +75,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     const hours =
       edit.data.hours ??
-      (edit.data.startDate || edit.data.endDate ? await computeHoursForRangeForUser(existing.userId, startDate, endDate) : existing.hours);
+      (edit.data.startDate || edit.data.endDate
+        ? await computeHoursForRangeForUser(existing.userId, startDate, endDate, organizationId)
+        : existing.hours);
 
     if (existing.type === "annual" && (existing.status === "pending" || existing.status === "approved")) {
-      const balance = await getBalance(existing.userId, startDate.getUTCFullYear(), existing.id);
+      const balance = await getBalance(existing.userId, startDate.getUTCFullYear(), organizationId, existing.id);
       if (hours > balance.remainingHours) {
         return NextResponse.json(
           { error: `That change needs ${hours}h but only ${balance.remainingHours}h remain for ${startDate.getUTCFullYear()}.` },

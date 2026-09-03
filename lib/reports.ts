@@ -5,9 +5,9 @@ import { calculateLeaveHoursForRota, bankHolidayBreakdownForRota, type WeeklyRot
 export type OpenSickLeave = { requestId: string; name: string; startDate: string };
 
 /** Sick leave entries still sitting on their unconfirmed placeholder end date — these can make a month's hours look wrong until someone finalizes them. */
-export async function getOpenSickLeave(): Promise<OpenSickLeave[]> {
+export async function getOpenSickLeave(organizationId: string): Promise<OpenSickLeave[]> {
   const rows = await prisma.leaveRequest.findMany({
-    where: { type: "sick", openEnded: true, status: "approved" },
+    where: { organizationId, type: "sick", openEnded: true, status: "approved" },
     include: { user: { select: { name: true } } },
     orderBy: { startDate: "asc" },
   });
@@ -69,23 +69,24 @@ function rotaHoursForMonth(rota: WeeklyRota, year: number, month: number): numbe
  * Overtime entries are single-day, so no month-boundary clipping is needed
  * for them.
  */
-export async function getMonthlyReport(year: number, month: number): Promise<MonthlyStaffReport[]> {
+export async function getMonthlyReport(year: number, month: number, organizationId: string): Promise<MonthlyStaffReport[]> {
   const monthStart = new Date(Date.UTC(year, month - 1, 1));
   const monthEnd = new Date(Date.UTC(year, month, 0));
   const monthKey = `${year}-${String(month).padStart(2, "0")}`;
 
   const [users, extraClosedDates, leaveRequests, overtimeEntries] = await Promise.all([
-    prisma.user.findMany({ where: { isDemo: false }, orderBy: { name: "asc" }, include: { rota: true } }),
-    loadExtraClosedDates(),
+    prisma.user.findMany({ where: { isDemo: false, organizationId }, orderBy: { name: "asc" }, include: { rota: true } }),
+    loadExtraClosedDates(organizationId),
     prisma.leaveRequest.findMany({
       where: {
+        organizationId,
         status: "approved",
         startDate: { lte: monthEnd },
         endDate: { gte: monthStart },
       },
     }),
     prisma.overtimeEntry.findMany({
-      where: { date: { gte: monthStart, lte: monthEnd } },
+      where: { organizationId, date: { gte: monthStart, lte: monthEnd } },
     }),
   ]);
 

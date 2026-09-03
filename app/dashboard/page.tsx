@@ -13,7 +13,8 @@ import HistoryTable from "@/components/leave/history-table";
 
 export default async function DashboardPage({ searchParams }: { searchParams: { year?: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
+  if (!session || !session.user.organizationId) redirect("/login");
+  const organizationId = session.user.organizationId;
 
   const now = new Date();
   const currentYear = now.getUTCFullYear();
@@ -28,14 +29,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
   const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
   const [balance, bankHolidayItems, requests, nextLeave] = await Promise.all([
-    getBalance(session.user.id, selectedYear),
-    getBankHolidayBreakdownForUser(session.user.id, selectedYear),
+    getBalance(session.user.id, selectedYear, organizationId),
+    getBankHolidayBreakdownForUser(session.user.id, selectedYear, organizationId),
     prisma.leaveRequest.findMany({
-      where: { userId: session.user.id },
+      where: { userId: session.user.id, organizationId },
       orderBy: { submittedAt: "desc" },
     }),
     prisma.leaveRequest.findFirst({
-      where: { userId: session.user.id, status: "approved", endDate: { gte: todayUTC } },
+      where: { userId: session.user.id, organizationId, status: "approved", endDate: { gte: todayUTC } },
       orderBy: { startDate: "asc" },
     }),
   ]);

@@ -19,19 +19,24 @@ const coverInputSchema = z
 const setCoverSchema = z.object({
   action: z.literal("set-cover"),
   scope: z.enum(["day", "period"]),
-  date: z.string().optional(),
-  cover: coverInputSchema,
+  date: z.string().optional(), // "YYYY-MM-DD", required when scope is "day"
+  cover: coverInputSchema, // null clears it
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!session || !session.user.organizationId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const organizationId = session.user.organizationId;
 
   const body = await req.json().catch(() => ({}));
 
-  const existing = await prisma.leaveRequest.findUnique({ where: { id: params.id } });
+  const existing = await prisma.leaveRequest.findFirst({ where: { id: params.id, organizationId } });
   if (!existing) return NextResponse.json({ error: "Request not found" }, { status: 404 });
 
+  // Set/clear who's covering — the request's own owner, or any manager, at
+  // any point (not just when the request was first submitted). "day" scope
+  // sets an override for just that one date within the leave period; "period"
+  // scope sets the default that applies to every day without its own override.
   const setCover = setCoverSchema.safeParse(body);
   if (setCover.success) {
     if (existing.userId !== session.user.id && !session.user.isManager) {
@@ -41,8 +46,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     let resolvedCover: CoverInfo | null = null;
     if (setCover.data.cover) {
       if (setCover.data.cover.type === "staff") {
+        // "self" is a convenience sentinel the client sends for one-click
+        // self-assignment, resolved to the actual signed-in user here.
         const userId = setCover.data.cover.userId === "self" ? session.user.id : setCover.data.cover.userId;
-        const staffUser = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true } });
+        const staffUser = await prisma.user.findFirst({
+          where: { id: userId, organizationId },
+          select: { id: true, name: true },
+        });
         if (!staffUser) {
           return NextResponse.json({ error: "That staff member wasn't found." }, { status: 400 });
         }
@@ -91,7 +101,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       data: { status: "cancelled" },
     });
 
-    const managers = await prisma.user.findMany({ where: { isManager: true }, select: { email: true } });
+    const managers = await prisma.user.findMany({ where: { isManager: true, organizationId }, select: { email: true } });
     await sendLeaveWithdrawnEmail({
       managerEmails: managers.map((m) => m.email),
       requesterName: session.user.name ?? "A staff member",

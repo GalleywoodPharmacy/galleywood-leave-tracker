@@ -18,8 +18,9 @@ export default async function ReportsPage({
   searchParams: { year?: string; month?: string };
 }) {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
+  if (!session || !session.user.organizationId) redirect("/login");
   if (!session.user.isManager) redirect("/dashboard");
+  const organizationId = session.user.organizationId;
 
   const now = new Date();
   const year = searchParams.year ? parseInt(searchParams.year, 10) : now.getUTCFullYear();
@@ -32,7 +33,10 @@ export default async function ReportsPage({
     years.sort((a, b) => a - b);
   }
 
-  const [report, openSickLeave] = await Promise.all([getMonthlyReport(year, month), getOpenSickLeave()]);
+  const [report, openSickLeave] = await Promise.all([
+    getMonthlyReport(year, month, organizationId),
+    getOpenSickLeave(organizationId),
+  ]);
 
   return (
     <div className="min-h-screen bg-page print:bg-white">

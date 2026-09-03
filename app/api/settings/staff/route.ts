@@ -7,8 +7,11 @@ import { hashPassword } from "@/lib/password";
 export async function GET() {
   const check = await requireManager();
   if (check instanceof NextResponse) return check;
+  const session = check;
+  if (!session.user.organizationId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
   const staff = await prisma.user.findMany({
+    where: { organizationId: session.user.organizationId },
     orderBy: { name: "asc" },
     select: {
       id: true,
@@ -33,6 +36,8 @@ const createSchema = z.object({
 export async function POST(req: Request) {
   const check = await requireManager();
   if (check instanceof NextResponse) return check;
+  const session = check;
+  if (!session.user.organizationId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
   const parsed = createSchema.safeParse(await req.json());
   if (!parsed.success) {
@@ -52,6 +57,7 @@ export async function POST(req: Request) {
       isManager: parsed.data.isManager,
       allowanceAnnualHours: parsed.data.allowanceAnnualHours,
       startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : undefined,
+      organizationId: session.user.organizationId,
     },
     select: { id: true, name: true, email: true, isManager: true },
   });

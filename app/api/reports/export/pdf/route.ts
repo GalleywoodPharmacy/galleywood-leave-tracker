@@ -76,6 +76,8 @@ function buildPdfBuffer(report: MonthlyStaffReport[], monthLabel: string): Promi
 export async function GET(req: Request) {
   const check = await requireManager();
   if (check instanceof NextResponse) return check;
+  const session = check;
+  if (!session.user.organizationId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
   const year = parseInt(searchParams.get("year") ?? "", 10);
@@ -84,7 +86,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Missing or invalid year/month" }, { status: 400 });
   }
 
-  const report = await getMonthlyReport(year, month);
+  const report = await getMonthlyReport(year, month, session.user.organizationId);
   const monthLabel = `${MONTH_NAMES[month - 1]} ${year}`;
   const buffer = await buildPdfBuffer(report, monthLabel);
 
