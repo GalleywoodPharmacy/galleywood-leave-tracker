@@ -32,7 +32,11 @@ model Organization {
   name      String
   createdAt DateTime @default(now())
 
-  users User[]
+  users            User[]
+  leaveRequests    LeaveRequest[]    @relation("OrgLeaveRequests")
+  extraClosedDates ExtraClosedDate[] @relation("OrgExtraClosedDates")
+  staffRotas       StaffRota[]       @relation("OrgStaffRotas")
+  overtimeEntries  OvertimeEntry[]   @relation("OrgOvertimeEntries")
 
   @@map("organizations")
 }
@@ -111,6 +115,12 @@ model LeaveRequest {
 
   status LeaveStatus @default(pending)
 
+  // Nullable for now, same pattern as User.organizationId in Phase 1 —
+  // backfilled to Galleywood via the setup script, then tightened to
+  // required once every row across the app has one (Phase 2c).
+  organizationId String?
+  organization   Organization? @relation("OrgLeaveRequests", fields: [organizationId], references: [id])
+
   submittedAt DateTime  @default(now())
   decidedAt   DateTime?
   decidedById String?
@@ -119,12 +129,21 @@ model LeaveRequest {
   @@index([userId])
   @@index([status])
   @@index([startDate, endDate])
+  @@index([organizationId])
   @@map("leave_requests")
 }
 
 model ExtraClosedDate {
   date  DateTime @id @db.Date
   label String
+
+  // Nullable for now, backfilled via the setup script. Note: `date` stays
+  // the primary key for this phase, which means it's still technically
+  // possible for two organizations to collide on the same custom closed
+  // date — that gets fixed properly in Phase 2c by restructuring this
+  // table's primary key, deliberately kept out of this lower-risk pass.
+  organizationId String?
+  organization   Organization? @relation("OrgExtraClosedDates", fields: [organizationId], references: [id])
 
   @@map("extra_closed_dates")
 }
@@ -156,6 +175,9 @@ model StaffRota {
   fridayHours    Float @default(7.5)
   saturdayHours  Float @default(4)
 
+  organizationId String?
+  organization   Organization? @relation("OrgStaffRotas", fields: [organizationId], references: [id])
+
   updatedAt DateTime @updatedAt
 
   @@map("staff_rotas")
@@ -173,6 +195,9 @@ model OvertimeEntry {
   date  DateTime @db.Date
   hours Float
   notes String?
+
+  organizationId String?
+  organization   Organization? @relation("OrgOvertimeEntries", fields: [organizationId], references: [id])
 
   createdAt DateTime @default(now())
 
