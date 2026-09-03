@@ -7,6 +7,7 @@ import AppNav from "@/components/app-nav";
 import StaffTable from "@/components/settings/staff-table";
 import ClosedDatesManager from "@/components/settings/closed-dates-manager";
 import RotaManager from "@/components/settings/rota-manager";
+import BusinessSettings from "@/components/settings/business-settings";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -17,10 +18,11 @@ export default async function SettingsPage() {
   const currentYear = new Date().getUTCFullYear();
   const years = [currentYear, currentYear + 1, currentYear + 2];
 
-  const [staff, closedDates, staffRotas] = await Promise.all([
+  const [staff, closedDates, staffRotas, organization] = await Promise.all([
     getAllStaffAnnualAllowances(years, organizationId),
     prisma.extraClosedDate.findMany({ where: { organizationId }, orderBy: { date: "asc" } }),
     getAllStaffRotas(organizationId),
+    prisma.organization.findUniqueOrThrow({ where: { id: organizationId } }),
   ]);
 
   return (
@@ -29,6 +31,25 @@ export default async function SettingsPage() {
 
       <main className="p-6 max-w-4xl mx-auto space-y-8">
         <h1 className="text-xl text-header">Settings</h1>
+
+        <section>
+          <h2 className="text-header text-lg mb-3">Business settings</h2>
+          <BusinessSettings
+            organization={{
+              name: organization.name,
+              logoUrl: organization.logoUrl,
+              themeColor: organization.themeColor,
+              openSunday: organization.openSunday,
+              openMonday: organization.openMonday,
+              openTuesday: organization.openTuesday,
+              openWednesday: organization.openWednesday,
+              openThursday: organization.openThursday,
+              openFriday: organization.openFriday,
+              openSaturday: organization.openSaturday,
+              statutoryLeaveWeeks: organization.statutoryLeaveWeeks,
+            }}
+          />
+        </section>
 
         <section>
           <h2 className="text-header text-lg mb-3">Staff &amp; allowances</h2>
