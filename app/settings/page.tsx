@@ -47,6 +47,7 @@ export default async function SettingsPage() {
               openFriday: organization.openFriday,
               openSaturday: organization.openSaturday,
               statutoryLeaveWeeks: organization.statutoryLeaveWeeks,
+              bankHolidaysIncludedInAllowance: organization.bankHolidaysIncludedInAllowance,
             }}
           />
         </section>

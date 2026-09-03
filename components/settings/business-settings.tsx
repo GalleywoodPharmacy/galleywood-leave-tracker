@@ -38,6 +38,7 @@ export default function BusinessSettings({
     openFriday: boolean;
     openSaturday: boolean;
     statutoryLeaveWeeks: number;
+    bankHolidaysIncludedInAllowance: boolean;
   };
 }) {
   const router = useRouter();
@@ -56,6 +57,7 @@ export default function BusinessSettings({
     openSaturday: organization.openSaturday,
   });
   const [statutoryLeaveWeeks, setStatutoryLeaveWeeks] = useState(String(organization.statutoryLeaveWeeks));
+  const [bankHolidaysIncluded, setBankHolidaysIncluded] = useState(organization.bankHolidaysIncludedInAllowance);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,6 +85,7 @@ export default function BusinessSettings({
         themeColor,
         ...openDays,
         statutoryLeaveWeeks: weeks,
+        bankHolidaysIncludedInAllowance: bankHolidaysIncluded,
       }),
     });
     setSubmitting(false);
@@ -166,9 +169,22 @@ export default function BusinessSettings({
           onChange={(e) => setStatutoryLeaveWeeks(e.target.value)}
           className="w-32 rounded-lg border border-line px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent"
         />
+        <p className="text-xs text-ink-soft mt-1">Defaults to the UK statutory minimum (5.6 weeks).</p>
+      </div>
+
+      <div>
+        <label className="flex items-center gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            checked={bankHolidaysIncluded}
+            onChange={(e) => setBankHolidaysIncluded(e.target.checked)}
+            className="rounded border-line"
+          />
+          Bank holidays included in allowance
+        </label>
         <p className="text-xs text-ink-soft mt-1">
-          Defaults to the UK statutory minimum (5.6 weeks). Not yet used in balance calculations — saved for a
-          future update.
+          Ticked: bank holiday hours are deducted from everyone's annual leave allowance (Galleywood's current
+          policy). Unticked: bank holidays are separate paid days off that don't touch anyone's leave balance.
         </p>
       </div>
 

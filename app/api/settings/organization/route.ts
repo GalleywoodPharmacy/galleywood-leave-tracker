@@ -15,6 +15,7 @@ const schema = z.object({
   openFriday: z.boolean().optional(),
   openSaturday: z.boolean().optional(),
   statutoryLeaveWeeks: z.number().positive().optional(),
+  bankHolidaysIncludedInAllowance: z.boolean().optional(),
 });
 
 export async function PATCH(req: Request) {

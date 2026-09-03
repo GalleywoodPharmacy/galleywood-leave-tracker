@@ -55,13 +55,19 @@ model Organization {
   // statutory minimum (5.6 weeks) — the figure currently hardcoded
   // throughout the app — but becomes a real per-business setting instead,
   // for a business with a different policy or in a different country.
+  statutoryLeaveWeeks Float @default(5.6)
+
+  // If true (Galleywood's actual current policy), bank holiday hours are
+  // deducted from the statutory allowance above. Some businesses instead
+  // treat bank holidays as separate paid days off that don't touch a
+  // person's annual leave pot at all — set this to false for those.
   //
   // NOT yet covered by this step: a configurable bank holiday calendar
   // (the app's list of UK bank holidays stays hardcoded for now) and
   // Galleywood's own blackout-period policy (pre-Christmas, pre-Easter) —
   // both are meaningfully bigger pieces of work, deliberately left out of
   // this pass rather than half-solved.
-  statutoryLeaveWeeks Float @default(5.6)
+  bankHolidaysIncludedInAllowance Boolean @default(true)
 
   users            User[]
   leaveRequests    LeaveRequest[]    @relation("OrgLeaveRequests")

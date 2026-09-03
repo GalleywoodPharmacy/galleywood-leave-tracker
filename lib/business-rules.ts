@@ -317,10 +317,12 @@ export function calculateStatutoryAnnualHours(
   rota: WeeklyRota,
   year: number,
   extraClosedDates: Map<string, string>,
-  startDate?: Date | null
+  startDate?: Date | null,
+  statutoryLeaveWeeks: number = 5.6,
+  deductBankHolidays: boolean = true
 ): number {
   const weeklyHours = rota.sun + rota.mon + rota.tue + rota.wed + rota.thu + rota.fri + rota.sat;
-  const fullEntitlement = weeklyHours * 5.6;
+  const fullEntitlement = weeklyHours * statutoryLeaveWeeks;
 
   let fraction = 1;
   let fromDateKey: string | undefined;
@@ -342,7 +344,9 @@ export function calculateStatutoryAnnualHours(
   }
 
   const proRatedEntitlement = fullEntitlement * fraction;
-  const closureHoursOnWorkingDays = bankHolidayHoursForRota(rota, year, extraClosedDates, fromDateKey);
+  const closureHoursOnWorkingDays = deductBankHolidays
+    ? bankHolidayHoursForRota(rota, year, extraClosedDates, fromDateKey)
+    : 0;
 
   return Math.max(0, Math.round((proRatedEntitlement - closureHoursOnWorkingDays) * 10) / 10);
 }

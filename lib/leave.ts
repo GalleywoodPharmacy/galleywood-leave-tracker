@@ -39,6 +39,22 @@ async function getStartDateForUser(userId: string, organizationId: string): Prom
   return user?.startDate ?? null;
 }
 
+/**
+ * The two organization-level policy settings that affect how much annual
+ * leave someone is entitled to: how many weeks' statutory leave the
+ * business grants (default 5.6, the UK minimum), and whether bank holidays
+ * come out of that allowance or sit outside it entirely.
+ */
+async function getOrgLeavePolicy(
+  organizationId: string
+): Promise<{ statutoryLeaveWeeks: number; bankHolidaysIncludedInAllowance: boolean }> {
+  const org = await prisma.organization.findUniqueOrThrow({
+    where: { id: organizationId },
+    select: { statutoryLeaveWeeks: true, bankHolidaysIncludedInAllowance: true },
+  });
+  return org;
+}
+
 export async function computeHoursForRangeForUser(
   userId: string,
   startDate: Date,
@@ -57,12 +73,20 @@ export async function computeStatutoryAnnualHoursForUser(
   year: number,
   organizationId: string
 ): Promise<number> {
-  const [rota, extraClosedDates, startDate] = await Promise.all([
+  const [rota, extraClosedDates, startDate, policy] = await Promise.all([
     getRotaForUser(userId, organizationId),
     loadExtraClosedDates(organizationId),
     getStartDateForUser(userId, organizationId),
+    getOrgLeavePolicy(organizationId),
   ]);
-  return calculateStatutoryAnnualHours(rota, year, extraClosedDates, startDate);
+  return calculateStatutoryAnnualHours(
+    rota,
+    year,
+    extraClosedDates,
+    startDate,
+    policy.statutoryLeaveWeeks,
+    policy.bankHolidaysIncludedInAllowance
+  );
 }
 
 /**
@@ -104,13 +128,13 @@ function round1(n: number): number {
 
 /**
  * A person's leave balance for a specific calendar year. The allowance is
- * computed live from their current rota + that year's actual bank holidays
- * (5.6 weeks minus bank-holiday hours that fall on their working days) —
- * it's no longer a manually-saved flat number, so 2026 and 2027 can (and
- * usually will) show slightly different allowances automatically, since
- * bank holidays fall on different weekdays each year. If they have a start
- * date set and it falls within the requested year, their entitlement for
- * that year is pro-rated automatically.
+ * computed live from their current rota + the business's statutory leave
+ * weeks setting + (if the business includes them) that year's actual bank
+ * holidays — it's no longer a manually-saved flat number, so different
+ * years can show different allowances automatically as bank holidays fall
+ * on different weekdays each year. If they have a start date set and it
+ * falls within the requested year, their entitlement for that year is
+ * pro-rated automatically.
  *
  * A request "belongs" to the calendar year its start date falls in — a
  * request starting 2 Jul 2027 counts against 2027's balance, regardless of
@@ -129,7 +153,7 @@ export async function getBalance(
   const yearStart = new Date(Date.UTC(year, 0, 1));
   const yearEnd = new Date(Date.UTC(year, 11, 31));
 
-  const [requests, rota, extraClosedDates, startDate] = await Promise.all([
+  const [requests, rota, extraClosedDates, startDate, policy] = await Promise.all([
     prisma.leaveRequest.findMany({
       where: {
         userId,
@@ -144,15 +168,28 @@ export async function getBalance(
     getRotaForUser(userId, organizationId),
     loadExtraClosedDates(organizationId),
     getStartDateForUser(userId, organizationId),
+    getOrgLeavePolicy(organizationId),
   ]);
 
   const approvedHours = round1(requests.filter((r) => r.status === "approved").reduce((sum, r) => sum + r.hours, 0));
   const pendingHours = round1(requests.filter((r) => r.status === "pending").reduce((sum, r) => sum + r.hours, 0));
-  const allowanceHours = calculateStatutoryAnnualHours(rota, year, extraClosedDates, startDate);
+  const allowanceHours = calculateStatutoryAnnualHours(
+    rota,
+    year,
+    extraClosedDates,
+    startDate,
+    policy.statutoryLeaveWeeks,
+    policy.bankHolidaysIncludedInAllowance
+  );
   const bankHolidayFromDateKey =
     startDate && startDate.getUTCFullYear() === year ? startDate.toISOString().slice(0, 10) : undefined;
+  // Only shown as a deduction line when the business actually deducts bank
+  // holidays from the allowance — otherwise it'd misleadingly imply hours
+  // were taken away when nothing was.
   const bankHolidayHours =
-    startDate && startDate.getUTCFullYear() > year ? 0 : bankHolidayHoursForRota(rota, year, extraClosedDates, bankHolidayFromDateKey);
+    !policy.bankHolidaysIncludedInAllowance || (startDate && startDate.getUTCFullYear() > year)
+      ? 0
+      : bankHolidayHoursForRota(rota, year, extraClosedDates, bankHolidayFromDateKey);
   const remainingHours = round1(allowanceHours - approvedHours - pendingHours);
 
   return {
@@ -184,9 +221,10 @@ export async function getAllStaffBalances(year: number, organizationId: string) 
  * and start date; there's no manually-saved figure to keep in sync any more.
  */
 export async function getAllStaffAnnualAllowances(years: number[], organizationId: string) {
-  const [users, extraClosedDates] = await Promise.all([
+  const [users, extraClosedDates, policy] = await Promise.all([
     prisma.user.findMany({ where: { isDemo: false, organizationId }, orderBy: { name: "asc" }, include: { rota: true } }),
     loadExtraClosedDates(organizationId),
+    getOrgLeavePolicy(organizationId),
   ]);
 
   return users.map((u) => {
@@ -210,7 +248,14 @@ export async function getAllStaffAnnualAllowances(years: number[], organizationI
       startDate: u.startDate ? u.startDate.toISOString().slice(0, 10) : null,
       allowances: years.map((year) => ({
         year,
-        hours: calculateStatutoryAnnualHours(rota, year, extraClosedDates, u.startDate),
+        hours: calculateStatutoryAnnualHours(
+          rota,
+          year,
+          extraClosedDates,
+          u.startDate,
+          policy.statutoryLeaveWeeks,
+          policy.bankHolidaysIncludedInAllowance
+        ),
       })),
     };
   });
