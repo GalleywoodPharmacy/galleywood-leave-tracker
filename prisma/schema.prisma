@@ -59,11 +59,9 @@ model User {
 
   startDate DateTime? @db.Date
 
-  // Nullable for now — every existing user gets backfilled to Galleywood via
-  // a one-off script right after this migration, then this becomes required
-  // in a follow-up once every row has one.
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  // Every user belongs to exactly one organization.
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -115,11 +113,9 @@ model LeaveRequest {
 
   status LeaveStatus @default(pending)
 
-  // Nullable for now, same pattern as User.organizationId in Phase 1 —
-  // backfilled to Galleywood via the setup script, then tightened to
-  // required once every row across the app has one (Phase 2c).
-  organizationId String?
-  organization   Organization? @relation("OrgLeaveRequests", fields: [organizationId], references: [id])
+  // Every leave request belongs to exactly one organization.
+  organizationId String
+  organization   Organization @relation("OrgLeaveRequests", fields: [organizationId], references: [id])
 
   submittedAt DateTime  @default(now())
   decidedAt   DateTime?
@@ -133,18 +129,19 @@ model LeaveRequest {
   @@map("leave_requests")
 }
 
+// A custom closed date belongs to exactly one organization; the primary
+// key is the pair (organizationId, date) rather than date alone, so two
+// different organizations can each have their own entry for the same date
+// without colliding — a plain single-column `date` primary key couldn't
+// support that once there's more than one organization.
 model ExtraClosedDate {
-  date  DateTime @id @db.Date
+  date  DateTime @db.Date
   label String
 
-  // Nullable for now, backfilled via the setup script. Note: `date` stays
-  // the primary key for this phase, which means it's still technically
-  // possible for two organizations to collide on the same custom closed
-  // date — that gets fixed properly in Phase 2c by restructuring this
-  // table's primary key, deliberately kept out of this lower-risk pass.
-  organizationId String?
-  organization   Organization? @relation("OrgExtraClosedDates", fields: [organizationId], references: [id])
+  organizationId String
+  organization   Organization @relation("OrgExtraClosedDates", fields: [organizationId], references: [id])
 
+  @@id([organizationId, date])
   @@map("extra_closed_dates")
 }
 
@@ -175,8 +172,8 @@ model StaffRota {
   fridayHours    Float @default(7.5)
   saturdayHours  Float @default(4)
 
-  organizationId String?
-  organization   Organization? @relation("OrgStaffRotas", fields: [organizationId], references: [id])
+  organizationId String
+  organization   Organization @relation("OrgStaffRotas", fields: [organizationId], references: [id])
 
   updatedAt DateTime @updatedAt
 
@@ -196,8 +193,8 @@ model OvertimeEntry {
   hours Float
   notes String?
 
-  organizationId String?
-  organization   Organization? @relation("OrgOvertimeEntries", fields: [organizationId], references: [id])
+  organizationId String
+  organization   Organization @relation("OrgOvertimeEntries", fields: [organizationId], references: [id])
 
   createdAt DateTime @default(now())
 

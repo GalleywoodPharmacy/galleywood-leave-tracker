@@ -1,13 +1,10 @@
 /**
- * One-off setup for multi-tenant support: creates the organization row for
- * Galleywood Pharmacy and links every existing row across every
- * organization-scoped table to it. Safe to run more than once — it won't
- * create a duplicate organization or touch rows that already have one, so
- * it's fine to re-run this each time a new table gets organizationId added
- * in a later phase.
- *
- * Run with:
- *   npx tsx prisma/create-organization.ts
+ * HISTORICAL — its job is done. This backfilled every row to Galleywood
+ * back when organizationId was still optional (Phases 1–2a). Now that it's
+ * required on every table (Phase 2c), there's nothing left with a null
+ * organizationId to backfill, and this script's `where: { organizationId:
+ * null }` filters won't even compile cleanly against the tightened schema
+ * if you tried to run it again. Kept only for reference — don't run it.
  */
 import { PrismaClient } from "@prisma/client";
 
