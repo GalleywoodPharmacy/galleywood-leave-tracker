@@ -67,6 +67,7 @@ model User {
   leaveRequests   LeaveRequest[] @relation("UserLeaveRequests")
   decidedRequests LeaveRequest[] @relation("DecidedByUser")
   loginTokens     LoginToken[]
+  overtimeEntries OvertimeEntry[] @relation("UserOvertimeEntries")
   rota            StaffRota?
 
   @@map("users")
@@ -158,4 +159,24 @@ model StaffRota {
   updatedAt DateTime @updatedAt
 
   @@map("staff_rotas")
+}
+
+// Extra hours worked beyond the rota, self-logged by whoever's clicking on
+// the Calendar — always immediately recorded (no approval workflow), and
+// intentionally separate from LeaveRequest since this is hours *worked*,
+// not an absence.
+model OvertimeEntry {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation("UserOvertimeEntries", fields: [userId], references: [id], onDelete: Cascade)
+
+  date  DateTime @db.Date
+  hours Float
+  notes String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([date])
+  @@map("overtime_entries")
 }

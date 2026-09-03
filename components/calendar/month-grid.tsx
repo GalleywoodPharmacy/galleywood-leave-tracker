@@ -22,6 +22,7 @@ function joinNames(names: string[]): string {
 
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+/** Day-of-week index with Monday = 0 ... Sunday = 6, instead of JS's native Sunday = 0. */
 function mondayFirstIndex(date: Date): number {
   return (date.getUTCDay() + 6) % 7;
 }
@@ -91,6 +92,8 @@ export default function MonthGrid({
               month={month}
               selStart={selStart}
               selEnd={selEnd}
+              isManager={isManager}
+              staffList={staffList}
               title={closed.closed ? closed.label : blackoutLabel ?? undefined}
               className={`min-h-[6.5rem] border-b border-r border-line p-1.5 text-xs align-top ${
                 inMonth ? "" : "bg-page/60"
@@ -139,6 +142,15 @@ export default function MonthGrid({
                 {data && data.leave.length > 3 && (
                   <div className="text-[10px] text-ink-soft">+{data.leave.length - 3} more</div>
                 )}
+                {data?.overtime.map((o, i) => (
+                  <div
+                    key={`ot${i}`}
+                    className="truncate rounded px-1 py-0.5 text-[9px] bg-green-100 text-green-700"
+                    title={`${o.name} — +${o.hours}h overtime${o.notes ? ` — ${o.notes}` : ""}`}
+                  >
+                    +{o.hours}h {o.name.split(" ")[0]}
+                  </div>
+                ))}
               </div>
             </SelectableDay>
           );

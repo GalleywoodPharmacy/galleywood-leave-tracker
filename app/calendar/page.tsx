@@ -102,12 +102,14 @@ export default async function CalendarPage({
             Black out period
           </span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-purple-200 inline-block" /> Sick</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-200 inline-block" /> Overtime</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded ring-2 ring-inset ring-accent bg-accent/10 inline-block" /> Your selection</span>
         </div>
 
         <p className="text-xs text-ink-soft print:hidden">
-          Click a day to start a leave request, or click your own leave (or anyone's, if you're a manager) to add or
-          change who's covering it. Approved leave shows a small box underneath with the cover status.
+          Click a day to request annual leave, log sickness (managers), or log overtime. Click your own leave (or
+          anyone's, if you're a manager) to add or change who's covering it — approved leave shows a small box
+          underneath with the cover status.
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
