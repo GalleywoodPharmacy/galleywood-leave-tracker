@@ -416,14 +416,6 @@ export function getBlackoutLabelForDate(dateKey: string, periods: BlackoutPeriod
   return null;
 }
 
-/** Which blackout period (if any) a given "YYYY-MM-DD" date falls in, across the periods passed in. */
-export function getBlackoutLabelForDate(dateKey: string, periods: BlackoutPeriod[]): string | null {
-  for (const p of periods) {
-    if (dateKey >= p.startDateKey && dateKey <= p.endDateKeyInclusive) return p.label;
-  }
-  return null;
-}
-
 /** Which of the two alternating Saturday teams is working, and which colour to show them in. */
 export type SaturdayTeam = { names: string[]; color: "flamingo" | "banana" };
 
