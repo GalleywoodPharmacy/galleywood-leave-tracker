@@ -6,6 +6,7 @@ declare module "next-auth" {
     user: {
       id: string;
       isManager: boolean;
+      isPlatformAdmin: boolean;
       organizationId: string | null;
       name?: string | null;
       email?: string | null;
@@ -15,6 +16,7 @@ declare module "next-auth" {
   interface User {
     id: string;
     isManager: boolean;
+    isPlatformAdmin: boolean;
     organizationId: string | null;
   }
 }
@@ -23,6 +25,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     isManager: boolean;
+    isPlatformAdmin: boolean;
     organizationId: string | null;
   }
 }

@@ -1,0 +1,31 @@
+/**
+ * One-off: grants platform-admin access (the cross-business /admin area,
+ * for listing and deleting business accounts) to a specific account by
+ * email. Edit ADMIN_EMAIL below to your own real login email, then run:
+ *   npx tsx prisma/grant-platform-admin.ts
+ *
+ * Safe to run again for a different email later if you ever need to grant
+ * this to someone else — it only touches the one account named below.
+ */
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+const ADMIN_EMAIL = "info@galleywoodpharmacy.com"; // <-- change this to your real login email
+
+async function main() {
+  const user = await prisma.user.update({
+    where: { email: ADMIN_EMAIL.toLowerCase().trim() },
+    data: { isPlatformAdmin: true },
+  });
+  console.log(`Granted platform admin to ${user.email}.`);
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
+import { sendWelcomeEmail } from "@/lib/email";
 
 const schema = z.object({
   businessName: z.string().min(1),
@@ -38,6 +39,12 @@ export async function POST(req: Request) {
         organizationId: organization.id,
       },
     });
+  });
+
+  await sendWelcomeEmail({
+    email,
+    managerName: parsed.data.managerName,
+    organizationName: parsed.data.businessName,
   });
 
   return NextResponse.json({ ok: true }, { status: 201 });

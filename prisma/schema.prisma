@@ -107,6 +107,13 @@ model User {
 
   isManager Boolean @default(false)
 
+  // Cross-business access, separate from isManager (which only grants
+  // manager rights within one's own organization) — for managing business
+  // accounts platform-wide (Settings has no equivalent; this is granted
+  // via a one-off script, not through the app itself, since it's a rare,
+  // highly-privileged action).
+  isPlatformAdmin Boolean @default(false)
+
   // If true, this account's own leave requests are wiped clean automatically
   // every time it's signed into — used for a public "try it out" demo login
   // that never accumulates real/permanent data.
@@ -116,9 +123,12 @@ model User {
 
   startDate DateTime? @db.Date
 
-  // Every user belongs to exactly one organization.
+  // Every user belongs to exactly one organization. onDelete: Cascade so
+  // deleting an organization (e.g. a test/abandoned business account via
+  // the admin area) cleanly removes every user in it too, rather than
+  // failing on a foreign key or leaving orphans.
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -172,7 +182,7 @@ model LeaveRequest {
 
   // Every leave request belongs to exactly one organization.
   organizationId String
-  organization   Organization @relation("OrgLeaveRequests", fields: [organizationId], references: [id])
+  organization   Organization @relation("OrgLeaveRequests", fields: [organizationId], references: [id], onDelete: Cascade)
 
   submittedAt DateTime  @default(now())
   decidedAt   DateTime?
@@ -196,7 +206,7 @@ model ExtraClosedDate {
   label String
 
   organizationId String
-  organization   Organization @relation("OrgExtraClosedDates", fields: [organizationId], references: [id])
+  organization   Organization @relation("OrgExtraClosedDates", fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@id([organizationId, date])
   @@map("extra_closed_dates")
@@ -230,7 +240,7 @@ model StaffRota {
   saturdayHours  Float @default(4)
 
   organizationId String
-  organization   Organization @relation("OrgStaffRotas", fields: [organizationId], references: [id])
+  organization   Organization @relation("OrgStaffRotas", fields: [organizationId], references: [id], onDelete: Cascade)
 
   updatedAt DateTime @updatedAt
 
@@ -251,7 +261,7 @@ model ExtraBlackoutPeriod {
   endDate   DateTime @db.Date
 
   organizationId String
-  organization   Organization @relation("OrgBlackoutPeriods", fields: [organizationId], references: [id])
+  organization   Organization @relation("OrgBlackoutPeriods", fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId])
   @@map("extra_blackout_periods")
@@ -271,7 +281,7 @@ model OvertimeEntry {
   notes String?
 
   organizationId String
-  organization   Organization @relation("OrgOvertimeEntries", fields: [organizationId], references: [id])
+  organization   Organization @relation("OrgOvertimeEntries", fields: [organizationId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 

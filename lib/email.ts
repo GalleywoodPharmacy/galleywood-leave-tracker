@@ -22,6 +22,22 @@ function fmtDate(d: Date) {
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+export async function sendWelcomeEmail(params: {
+  email: string;
+  managerName: string;
+  organizationName: string;
+}) {
+  await send(
+    params.email,
+    `Welcome to ${params.organizationName}'s Staff Leave & Rota`,
+    `<p>Hi ${params.managerName},</p>
+     <p>Your account for <strong>${params.organizationName}</strong> is all set up.</p>
+     <p>Sign in any time at <a href="${APP_URL}/login">${APP_URL}/login</a> using this email address
+     (<strong>${params.email}</strong>) and the password you chose when signing up.</p>
+     <p><a href="${APP_URL}/login">Go to the site</a></p>`
+  );
+}
+
 export async function sendLeaveSubmittedEmail(params: {
   managerEmails: string[];
   requesterName: string;
