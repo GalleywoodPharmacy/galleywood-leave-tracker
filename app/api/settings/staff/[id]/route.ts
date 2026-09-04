@@ -68,8 +68,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   if (email) {
     const normalizedEmail = email.toLowerCase().trim();
-    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-    if (existing && existing.id !== params.id) {
+    const existing = await prisma.user.findFirst({
+      where: { email: normalizedEmail, organizationId, id: { not: params.id } },
+    });
+    if (existing) {
       return NextResponse.json({ error: "That email is already in use." }, { status: 409 });
     }
     updateData.email = normalizedEmail;

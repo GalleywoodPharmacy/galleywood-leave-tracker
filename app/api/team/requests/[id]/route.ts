@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireManager } from "@/lib/require-manager";
 import { prisma } from "@/lib/prisma";
-import { getBalance, computeHoursForRangeForUser } from "@/lib/leave";
+import { getBalance, computeHoursForRangeForUser, getOrgBranding } from "@/lib/leave";
 import { sendLeaveDecisionEmail, sendLeaveCancelledByManagerEmail, sendLeaveAmendedEmail } from "@/lib/email";
 
 const decideSchema = z.object({ action: z.literal("decide"), decision: z.enum(["approved", "denied"]) });
@@ -28,6 +28,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   });
   if (!existing) return NextResponse.json({ error: "Request not found" }, { status: 404 });
 
+  const branding = await getOrgBranding(organizationId);
+
   const body = await req.json().catch(() => ({}));
 
   const decide = decideSchema.safeParse(body);
@@ -41,6 +43,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     });
     await sendLeaveDecisionEmail({
       requesterEmail: existing.user.email,
+      organizationName: branding.name,
       requesterName: existing.user.name,
       status: decide.data.decision,
       startDate: existing.startDate,
@@ -57,6 +60,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const updated = await prisma.leaveRequest.update({ where: { id: params.id }, data: { status: "cancelled" } });
     await sendLeaveCancelledByManagerEmail({
       requesterEmail: existing.user.email,
+      organizationName: branding.name,
       requesterName: existing.user.name,
       startDate: existing.startDate,
       endDate: existing.endDate,
@@ -103,6 +107,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     });
     await sendLeaveAmendedEmail({
       requesterEmail: existing.user.email,
+      organizationName: branding.name,
       requesterName: existing.user.name,
       startDate,
       endDate,

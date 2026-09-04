@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { computeHoursForRangeForUser, getBalance } from "@/lib/leave";
+import { computeHoursForRangeForUser, getBalance, getOrgBranding } from "@/lib/leave";
 import { sendLeaveSubmittedEmail } from "@/lib/email";
 
 export async function GET() {
@@ -75,9 +75,13 @@ export async function POST(req: Request) {
     },
   });
 
-  const managers = await prisma.user.findMany({ where: { isManager: true, organizationId }, select: { email: true } });
+  const [managers, branding] = await Promise.all([
+    prisma.user.findMany({ where: { isManager: true, organizationId }, select: { email: true } }),
+    getOrgBranding(organizationId),
+  ]);
   await sendLeaveSubmittedEmail({
     managerEmails: managers.map((m) => m.email),
+    organizationName: branding.name,
     requesterName: session.user.name ?? "A staff member",
     startDate: start,
     endDate: end,

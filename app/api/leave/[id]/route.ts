@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendLeaveWithdrawnEmail } from "@/lib/email";
+import { getOrgBranding } from "@/lib/leave";
 import { Prisma } from "@prisma/client";
 import type { CoverInfo } from "@/lib/cover";
 
@@ -101,9 +102,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       data: { status: "cancelled" },
     });
 
-    const managers = await prisma.user.findMany({ where: { isManager: true, organizationId }, select: { email: true } });
+    const [managers, branding] = await Promise.all([
+      prisma.user.findMany({ where: { isManager: true, organizationId }, select: { email: true } }),
+      getOrgBranding(organizationId),
+    ]);
     await sendLeaveWithdrawnEmail({
       managerEmails: managers.map((m) => m.email),
+      organizationName: branding.name,
       requesterName: session.user.name ?? "A staff member",
       startDate: existing.startDate,
       endDate: existing.endDate,
