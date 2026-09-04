@@ -19,7 +19,7 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-const ADMIN_EMAIL = "info@galleywoodpharmacy.com"; // <-- change this
+const ADMIN_EMAIL = "info+@galleywoodpharmacy.com"; // <-- change this
 const ADMIN_PASSWORD = "STARadmin"; // <-- change this
 const ADMIN_NAME = "Platform Admin";
 const ADMIN_ORG_NAME = "Platform Admin";
