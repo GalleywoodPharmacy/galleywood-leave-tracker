@@ -405,8 +405,51 @@ export function calculateStatutoryAnnualHours(
   return Math.max(0, Math.round((proRatedEntitlement - closureHoursOnWorkingDays) * 10) / 10);
 }
 
-/** A named date range shown greyed-out on the calendar (not a closure — the business is still open, staff still work). Now sourced from each organization's own custom list (lib/leave.ts's getOrgBlackoutPeriods) rather than a hardcoded UK-specific rule. */
+/** A named date range shown greyed-out on the calendar (not a closure — the business is still open, staff still work). Sourced from two places: an organization's recurring pre-Christmas/pre-Easter settings (computed fresh every year, see computeRecurringBlackoutPeriods) and its own custom one-off list (lib/leave.ts's getOrgBlackoutPeriods merges both). */
 export type BlackoutPeriod = { startDateKey: string; endDateKeyInclusive: string; label: string };
+
+export type RecurringBlackoutConfig = {
+  preChristmasEnabled: boolean;
+  preChristmasWeeks: number;
+  preEasterEnabled: boolean;
+  preEasterWeeks: number;
+};
+
+/**
+ * The two common seasonal blackout periods, computed fresh for the given
+ * year so they track moving dates automatically (Easter shifts; Christmas
+ * doesn't) and never need re-adding. Both end the day before their
+ * associated closure (Christmas Day / Good Friday) — consistent with the
+ * rest of the app's "blackout stops before the closure starts" convention —
+ * and each stretches back the configured number of weeks from there.
+ */
+export function computeRecurringBlackoutPeriods(year: number, config: RecurringBlackoutConfig): BlackoutPeriod[] {
+  const key = (d: Date) => d.toISOString().slice(0, 10);
+  const periods: BlackoutPeriod[] = [];
+
+  if (config.preChristmasEnabled && config.preChristmasWeeks > 0) {
+    const end = new Date(Date.UTC(year, 11, 24));
+    const start = addDays(end, -(config.preChristmasWeeks * 7 - 1));
+    periods.push({
+      startDateKey: key(start),
+      endDateKeyInclusive: key(end),
+      label: `Pre-Christmas (${config.preChristmasWeeks} week${config.preChristmasWeeks > 1 ? "s" : ""})`,
+    });
+  }
+
+  if (config.preEasterEnabled && config.preEasterWeeks > 0) {
+    const goodFriday = addDays(easterSunday(year), -2);
+    const end = addDays(goodFriday, -1);
+    const start = addDays(end, -(config.preEasterWeeks * 7 - 1));
+    periods.push({
+      startDateKey: key(start),
+      endDateKeyInclusive: key(end),
+      label: `Pre-Easter (${config.preEasterWeeks} week${config.preEasterWeeks > 1 ? "s" : ""})`,
+    });
+  }
+
+  return periods;
+}
 
 /** Which blackout period (if any) a given "YYYY-MM-DD" date falls in, across the periods passed in. */
 export function getBlackoutLabelForDate(dateKey: string, periods: BlackoutPeriod[]): string | null {

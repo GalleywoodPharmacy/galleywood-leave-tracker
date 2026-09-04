@@ -16,6 +16,10 @@ const schema = z.object({
   openSaturday: z.boolean().optional(),
   statutoryLeaveWeeks: z.number().positive().optional(),
   bankHolidaysIncludedInAllowance: z.boolean().optional(),
+  preChristmasBlackoutEnabled: z.boolean().optional(),
+  preChristmasBlackoutWeeks: z.number().int().min(0).max(12).optional(),
+  preEasterBlackoutEnabled: z.boolean().optional(),
+  preEasterBlackoutWeeks: z.number().int().min(0).max(12).optional(),
 });
 
 export async function PATCH(req: Request) {

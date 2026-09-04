@@ -66,6 +66,16 @@ model Organization {
   // (the app's list of UK bank holidays stays hardcoded for now).
   bankHolidaysIncludedInAllowance Boolean @default(true)
 
+  // Recurring blackout periods, computed fresh every year (never need
+  // re-adding) — an alternative to ExtraBlackoutPeriod below for the two
+  // common seasonal cases. Defaults here exactly match Galleywood's
+  // original hardcoded behaviour (2 weeks pre-Christmas, 1 week
+  // pre-Easter), so nothing changes for the existing business.
+  preChristmasBlackoutEnabled Boolean @default(true)
+  preChristmasBlackoutWeeks   Int     @default(2)
+  preEasterBlackoutEnabled    Boolean @default(true)
+  preEasterBlackoutWeeks      Int     @default(1)
+
   users            User[]
   leaveRequests    LeaveRequest[]    @relation("OrgLeaveRequests")
   extraClosedDates ExtraClosedDate[] @relation("OrgExtraClosedDates")

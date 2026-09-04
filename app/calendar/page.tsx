@@ -40,7 +40,7 @@ export default async function CalendarPage({
     }),
     getOrgOpenWeekdays(organizationId),
     getOrgBranding(organizationId),
-    getOrgBlackoutPeriods(organizationId),
+    getOrgBlackoutPeriods(organizationId, year),
   ]);
 
   const prev = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };

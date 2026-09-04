@@ -4,6 +4,7 @@ import {
   calculateStatutoryAnnualHours,
   bankHolidayHoursForRota,
   bankHolidayBreakdownForRota,
+  computeRecurringBlackoutPeriods,
   type WeeklyRota,
   type BankHolidayBreakdownItem,
   type OpenWeekdays,
@@ -99,18 +100,46 @@ export async function getOrgBranding(organizationId: string): Promise<{ name: st
 }
 
 /**
- * The business's own custom blackout periods — named date ranges shown
- * greyed-out on the Calendar as a "please don't request leave here" hint.
- * Fully business-defined (Settings → Business settings), not tied to
- * Christmas/Easter or any other fixed rule.
+ * The business's full set of blackout periods for the Calendar: the two
+ * recurring seasonal ones (pre-Christmas/pre-Easter, computed fresh for the
+ * given year and the years either side — to cover the Calendar's padding
+ * days from adjacent months — per the business's Settings toggle/weeks),
+ * merged with its own custom one-off list.
  */
-export async function getOrgBlackoutPeriods(organizationId: string): Promise<BlackoutPeriod[]> {
-  const rows = await prisma.extraBlackoutPeriod.findMany({ where: { organizationId }, orderBy: { startDate: "asc" } });
-  return rows.map((r) => ({
+export async function getOrgBlackoutPeriods(organizationId: string, year: number): Promise<BlackoutPeriod[]> {
+  const [org, customRows] = await Promise.all([
+    prisma.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      select: {
+        preChristmasBlackoutEnabled: true,
+        preChristmasBlackoutWeeks: true,
+        preEasterBlackoutEnabled: true,
+        preEasterBlackoutWeeks: true,
+      },
+    }),
+    prisma.extraBlackoutPeriod.findMany({ where: { organizationId }, orderBy: { startDate: "asc" } }),
+  ]);
+
+  const config = {
+    preChristmasEnabled: org.preChristmasBlackoutEnabled,
+    preChristmasWeeks: org.preChristmasBlackoutWeeks,
+    preEasterEnabled: org.preEasterBlackoutEnabled,
+    preEasterWeeks: org.preEasterBlackoutWeeks,
+  };
+
+  const recurring = [
+    ...computeRecurringBlackoutPeriods(year - 1, config),
+    ...computeRecurringBlackoutPeriods(year, config),
+    ...computeRecurringBlackoutPeriods(year + 1, config),
+  ];
+
+  const custom = customRows.map((r) => ({
     startDateKey: r.startDate.toISOString().slice(0, 10),
     endDateKeyInclusive: r.endDate.toISOString().slice(0, 10),
     label: r.label,
   }));
+
+  return [...recurring, ...custom];
 }
 
 export async function computeHoursForRangeForUser(

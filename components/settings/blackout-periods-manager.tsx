@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import DateInput from "@/components/date-input";
-import { easterSunday } from "@/lib/business-rules";
 
 export type BlackoutPeriodItem = { id: string; label: string; startDateKey: string; endDateKeyInclusive: string };
 
@@ -16,12 +15,6 @@ function fmt(key: string) {
   });
 }
 
-function addDays(d: Date, n: number): Date {
-  const copy = new Date(d);
-  copy.setUTCDate(copy.getUTCDate() + n);
-  return copy;
-}
-
 function toDateKey(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
@@ -30,31 +23,6 @@ function todayUTC(): Date {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
-
-/** The day before Christmas, for whichever Christmas hasn't happened yet — this year's if still ahead, otherwise next year's. */
-function nextChristmasBlackoutEnd(): Date {
-  const year = todayUTC().getUTCFullYear();
-  const thisYearEnd = new Date(Date.UTC(year, 11, 24));
-  return todayUTC() <= thisYearEnd ? thisYearEnd : new Date(Date.UTC(year + 1, 11, 24));
-}
-
-/** The day before Good Friday, for whichever Easter hasn't happened yet. */
-function nextEasterBlackoutEnd(): Date {
-  let year = todayUTC().getUTCFullYear();
-  let blackoutEnd = addDays(easterSunday(year), -3); // Good Friday is Easter Sunday - 2; blackout ends the day before that
-  if (todayUTC() > blackoutEnd) {
-    year += 1;
-    blackoutEnd = addDays(easterSunday(year), -3);
-  }
-  return blackoutEnd;
-}
-
-const PRESETS: { key: string; buttonLabel: string; weeks: 1 | 2; anchor: "christmas" | "easter" }[] = [
-  { key: "christmas1", buttonLabel: "1 week before Christmas", weeks: 1, anchor: "christmas" },
-  { key: "christmas2", buttonLabel: "2 weeks before Christmas", weeks: 2, anchor: "christmas" },
-  { key: "easter1", buttonLabel: "1 week before Easter", weeks: 1, anchor: "easter" },
-  { key: "easter2", buttonLabel: "2 weeks before Easter", weeks: 2, anchor: "easter" },
-];
 
 export default function BlackoutPeriodsManager({ periods }: { periods: BlackoutPeriodItem[] }) {
   const router = useRouter();
@@ -69,14 +37,6 @@ export default function BlackoutPeriodsManager({ periods }: { periods: BlackoutP
   const todayKey = toDateKey(todayUTC());
   const upcoming = periods.filter((p) => p.endDateKeyInclusive >= todayKey);
   const past = periods.filter((p) => p.endDateKeyInclusive < todayKey);
-
-  function applyPreset(preset: (typeof PRESETS)[number]) {
-    const end = preset.anchor === "christmas" ? nextChristmasBlackoutEnd() : nextEasterBlackoutEnd();
-    const start = addDays(end, -(preset.weeks * 7 - 1));
-    setStartDate(toDateKey(start));
-    setEndDate(toDateKey(end));
-    setLabel(`Pre-${preset.anchor === "christmas" ? "Christmas" : "Easter"} (${preset.weeks} week${preset.weeks > 1 ? "s" : ""})`);
-  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -133,7 +93,7 @@ export default function BlackoutPeriodsManager({ periods }: { periods: BlackoutP
   return (
     <div className="space-y-4">
       <div className="bg-white border border-line rounded-xl divide-y divide-line">
-        {upcoming.length === 0 && <p className="px-5 py-4 text-sm text-ink-soft">No upcoming blackout periods added.</p>}
+        {upcoming.length === 0 && <p className="px-5 py-4 text-sm text-ink-soft">No upcoming custom blackout periods added.</p>}
         {upcoming.map(renderRow)}
       </div>
 
@@ -155,23 +115,7 @@ export default function BlackoutPeriodsManager({ periods }: { periods: BlackoutP
       )}
 
       <form onSubmit={handleAdd} className="bg-white border border-line rounded-xl p-5 space-y-3">
-        <h3 className="text-sm font-medium text-ink">Add a blackout period</h3>
-
-        <div>
-          <label className="block text-xs text-ink-soft mb-1.5">Quick pick (fills in the dates below — still editable)</label>
-          <div className="flex flex-wrap gap-2">
-            {PRESETS.map((preset) => (
-              <button
-                key={preset.key}
-                type="button"
-                onClick={() => applyPreset(preset)}
-                className="rounded-lg border border-line px-3 py-1.5 text-xs hover:bg-card"
-              >
-                {preset.buttonLabel}
-              </button>
-            ))}
-          </div>
-        </div>
+        <h3 className="text-sm font-medium text-ink">Add a custom blackout period</h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>

@@ -9,6 +9,7 @@ import ClosedDatesManager from "@/components/settings/closed-dates-manager";
 import RotaManager from "@/components/settings/rota-manager";
 import BusinessSettings from "@/components/settings/business-settings";
 import BlackoutPeriodsManager from "@/components/settings/blackout-periods-manager";
+import RecurringBlackoutSettings from "@/components/settings/recurring-blackout-settings";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -73,17 +74,26 @@ export default async function SettingsPage() {
           <h2 className="text-header text-lg mb-3">Blackout periods</h2>
           <p className="text-xs text-ink-soft mb-3">
             Date ranges shown greyed-out on the Calendar as a hint not to request leave — the business stays open,
-            this doesn't block requests, just flags them. Add next year's periods when the time comes; these don't
-            repeat automatically.
+            this doesn't block requests, just flags them.
           </p>
-          <BlackoutPeriodsManager
-            periods={blackoutPeriods.map((p) => ({
-              id: p.id,
-              label: p.label,
-              startDateKey: p.startDate.toISOString().slice(0, 10),
-              endDateKeyInclusive: p.endDate.toISOString().slice(0, 10),
-            }))}
-          />
+          <div className="space-y-4">
+            <RecurringBlackoutSettings
+              config={{
+                preChristmasBlackoutEnabled: organization.preChristmasBlackoutEnabled,
+                preChristmasBlackoutWeeks: organization.preChristmasBlackoutWeeks,
+                preEasterBlackoutEnabled: organization.preEasterBlackoutEnabled,
+                preEasterBlackoutWeeks: organization.preEasterBlackoutWeeks,
+              }}
+            />
+            <BlackoutPeriodsManager
+              periods={blackoutPeriods.map((p) => ({
+                id: p.id,
+                label: p.label,
+                startDateKey: p.startDate.toISOString().slice(0, 10),
+                endDateKeyInclusive: p.endDate.toISOString().slice(0, 10),
+              }))}
+            />
+          </div>
         </section>
       </main>
     </div>
