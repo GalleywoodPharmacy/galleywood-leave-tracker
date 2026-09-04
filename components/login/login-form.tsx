@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginForm() {
@@ -32,7 +32,15 @@ export default function LoginForm() {
       return;
     }
 
-    router.push(callbackUrl);
+    // A dedicated platform-admin account (not also a business manager) goes
+    // straight to the cross-business admin area instead of a Dashboard it
+    // doesn't really have any use for. A business's own manager who also
+    // happens to have platform-admin rights (e.g. Galleywood's own login)
+    // is unaffected — they still land on their normal Dashboard.
+    const session = await getSession();
+    const destination = session?.user?.isPlatformAdmin && !session?.user?.isManager ? "/admin" : callbackUrl;
+
+    router.push(destination);
     router.refresh();
   }
 
@@ -47,7 +55,7 @@ export default function LoginForm() {
           </div>
         </div>
 
-        <h1 className="text-xl text-header text-center mb-1">Smart Team And Rota (STAR)</h1>
+        <h1 className="text-xl text-header text-center mb-1">SmartTeamAndRota (STAR)</h1>
         <p className="text-ink-soft text-center text-sm mb-8">Staff leave, rota &amp; cover planning</p>
 
         <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 mb-4 text-center">
