@@ -1,6 +1,7 @@
 import { getClosedReason, getBlackoutLabelForDate, getSaturdayTeam, type BlackoutPeriod, type OpenWeekdays, type SaturdayTeamsConfig } from "@/lib/business-rules";
 import type { DayData } from "@/lib/calendar";
 import LeaveChip from "./leave-chip";
+import OvertimeChip from "./overtime-chip";
 import SelectableDay from "./selectable-day";
 
 const STATUS_CHIP: Record<string, string> = {
@@ -130,6 +131,9 @@ export default function MonthGrid({
                   <LeaveChip
                     key={i}
                     requestId={l.requestId}
+                    userId={l.userId}
+                    currentUserId={currentUserId}
+                    isManager={isManager}
                     name={l.name}
                     status={l.status}
                     type={l.type}
@@ -140,6 +144,8 @@ export default function MonthGrid({
                     dayKey={key}
                     periodStart={l.periodStart}
                     periodEnd={l.periodEnd}
+                    hours={l.hours}
+                    notes={l.notes}
                     staffList={staffList}
                   />
                 ))}
@@ -147,13 +153,14 @@ export default function MonthGrid({
                   <div className="text-[10px] text-ink-soft">+{data.leave.length - 3} more</div>
                 )}
                 {data?.overtime.map((o, i) => (
-                  <div
+                  <OvertimeChip
                     key={`ot${i}`}
-                    className="truncate rounded px-1 py-0.5 text-[9px] bg-green-100 text-green-700"
-                    title={`${o.name} — +${o.hours}h overtime${o.notes ? ` — ${o.notes}` : ""}`}
-                  >
-                    +{o.hours}h {o.name.split(" ")[0]}
-                  </div>
+                    entryId={o.id}
+                    name={o.name}
+                    hours={o.hours}
+                    notes={o.notes}
+                    canEdit={o.userId === currentUserId || isManager}
+                  />
                 ))}
               </div>
             </SelectableDay>
