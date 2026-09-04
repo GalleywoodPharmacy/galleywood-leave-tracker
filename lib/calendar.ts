@@ -11,6 +11,8 @@ export type DayChipLeave = {
   cover: CoverInfo | null;
   periodStart: string; // "YYYY-MM-DD"
   periodEnd: string; // "YYYY-MM-DD"
+  hours: number;
+  notes: string | null;
 };
 export type DayOvertime = {
   id: string;
@@ -85,6 +87,8 @@ export async function getMonthCalendarData(year: number, month: number, organiza
         cover,
         periodStart,
         periodEnd,
+        hours: r.hours,
+        notes: r.notes,
       });
       cursor = addDays(cursor, 1);
     }
