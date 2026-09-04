@@ -29,7 +29,6 @@ export default function BusinessSettings({
   organization: {
     name: string;
     logoUrl: string | null;
-    themeColor: string | null;
     openSunday: boolean;
     openMonday: boolean;
     openTuesday: boolean;
@@ -46,7 +45,6 @@ export default function BusinessSettings({
 
   const [name, setName] = useState(organization.name);
   const [logoUrl, setLogoUrl] = useState(organization.logoUrl ?? "");
-  const [themeColor, setThemeColor] = useState(organization.themeColor ?? "");
   const [openDays, setOpenDays] = useState<Record<OpenDayKey, boolean>>({
     openSunday: organization.openSunday,
     openMonday: organization.openMonday,
@@ -82,7 +80,6 @@ export default function BusinessSettings({
       body: JSON.stringify({
         name,
         logoUrl,
-        themeColor,
         ...openDays,
         statutoryLeaveWeeks: weeks,
         bankHolidaysIncludedInAllowance: bankHolidaysIncluded,
@@ -118,25 +115,6 @@ export default function BusinessSettings({
           className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
         />
         <p className="text-xs text-ink-soft mt-1">Not shown anywhere in the app yet — saved for a future update.</p>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-ink mb-1">Theme colour (optional)</label>
-        <div className="flex items-center gap-2">
-          <input
-            type="color"
-            value={themeColor || "#0E5F59"}
-            onChange={(e) => setThemeColor(e.target.value)}
-            className="h-9 w-14 rounded border border-line cursor-pointer"
-          />
-          <input
-            value={themeColor}
-            onChange={(e) => setThemeColor(e.target.value)}
-            placeholder="#0E5F59"
-            className="flex-1 rounded-lg border border-line px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent"
-          />
-        </div>
-        <p className="text-xs text-ink-soft mt-1">Not applied anywhere in the app yet — saved for a future update.</p>
       </div>
 
       <div>

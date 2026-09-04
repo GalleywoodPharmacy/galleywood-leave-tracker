@@ -5,17 +5,17 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: "#15827B", // buttons, approved status, links
-        accent: "#34BBB6", // highlights, hover states
-        header: "#0E5F59", // header banner, headings
-        page: "#F6FBFA", // app background
-        card: "#E6F5F3", // cards, table zebra
-        ink: "#152522", // body text
-        "ink-soft": "#587370", // secondary text
-        line: "#D6ECE9", // borders/dividers
+        primary: "#2563EB", // buttons, approved status, links
+        accent: "#3B82F6", // highlights, hover states
+        header: "#1E3A8A", // header banner, headings
+        page: "#F5F8FF", // app background
+        card: "#E8EFFC", // cards, table zebra
+        ink: "#0F172A", // body text
+        "ink-soft": "#5B6B85", // secondary text
+        line: "#D7E3FA", // borders/dividers
         pending: "#C98A2C", // amber — pending/requested
         declined: "#B3413A", // red — declined
-        coverage: "#3B6E8F", // blue — shift coverage, kept distinct from teal
+        coverage: "#7C3AED", // violet — shift coverage, kept distinct from the primary blue
       },
       fontFamily: {
         heading: ["Poppins", "sans-serif"],

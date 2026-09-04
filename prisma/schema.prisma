@@ -32,12 +32,11 @@ model Organization {
   name      String
   createdAt DateTime @default(now())
 
-  // Branding — null means "use Galleywood's current hardcoded look", so
-  // nothing changes for the existing business until these are actually set.
-  // The app doesn't read or apply these yet; this just gets the data model
-  // ready for that (a later step).
-  logoUrl    String?
-  themeColor String? // hex, e.g. "#0E5F59"
+  // Branding — null means "use the app's default logo", so nothing changes
+  // for the existing business until a logo is actually set. The app
+  // doesn't read or apply this yet; this just gets the data model ready
+  // for that (a later step).
+  logoUrl String?
 
   // Which weekdays the business is open at all, independent of any one
   // staff member's own rota — replaces the app's current hardcoded
