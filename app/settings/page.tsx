@@ -42,7 +42,6 @@ export default async function SettingsPage() {
             organization={{
               name: organization.name,
               logoUrl: organization.logoUrl,
-              themeColor: organization.themeColor,
               openSunday: organization.openSunday,
               openMonday: organization.openMonday,
               openTuesday: organization.openTuesday,
