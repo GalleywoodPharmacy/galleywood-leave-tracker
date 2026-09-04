@@ -51,6 +51,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           email: user.email,
           isManager: user.isManager,
+          isPlatformAdmin: user.isPlatformAdmin,
           organizationId: user.organizationId,
         };
       },
@@ -61,6 +62,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.isManager = (user as { isManager: boolean }).isManager;
+        token.isPlatformAdmin = (user as { isPlatformAdmin: boolean }).isPlatformAdmin;
         token.organizationId = (user as { organizationId: string | null }).organizationId;
       }
       return token;
@@ -69,6 +71,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.isManager = token.isManager as boolean;
+        session.user.isPlatformAdmin = token.isPlatformAdmin as boolean;
         session.user.organizationId = token.organizationId as string | null;
       }
       return session;
