@@ -4,12 +4,12 @@ import AuthProvider from "@/components/auth-provider";
 import ToastProvider from "@/components/toast-provider";
 
 export const metadata: Metadata = {
-  title: "Galleywood Pharmacy — Staff Leave & Rota",
-  description: "Staff leave requests, approvals, calendar and shift coverage for Galleywood Pharmacy.",
+  title: "Smart Team And Rota (STAR)",
+  description: "Staff leave requests, approvals, calendar and shift coverage — powered by SmartTeamAndRota (STAR).",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Galleywood Leave",
+    title: "STAR",
   },
 };
 

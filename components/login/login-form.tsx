@@ -3,15 +3,8 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
 
-export default function LoginForm({
-  organizationName,
-  organizationLogoUrl,
-}: {
-  organizationName: string;
-  organizationLogoUrl: string | null;
-}) {
+export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
@@ -47,18 +40,15 @@ export default function LoginForm({
     <div className="min-h-screen flex items-center justify-center bg-page px-4">
       <div className="w-full max-w-sm">
         <div className="flex justify-center mb-6">
-          <div className="h-20 w-20 rounded-full bg-white shadow-sm flex items-center justify-center overflow-hidden border border-line">
-            {organizationLogoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={organizationLogoUrl} alt={organizationName} className="h-16 w-16 object-contain" />
-            ) : (
-              <Image src="/logo.jpg" alt={organizationName} width={64} height={64} className="object-contain" />
-            )}
+          <div className="h-20 w-20 rounded-full bg-primary/10 shadow-sm flex items-center justify-center border border-line">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-10 h-10 text-primary">
+              <path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 7.1-1.01L12 2z" />
+            </svg>
           </div>
         </div>
 
-        <h1 className="text-xl text-header text-center mb-1">{organizationName}</h1>
-        <p className="text-ink-soft text-center text-sm mb-8">Staff Leave &amp; Rota</p>
+        <h1 className="text-xl text-header text-center mb-1">Smart Team And Rota (STAR)</h1>
+        <p className="text-ink-soft text-center text-sm mb-8">Staff leave, rota &amp; cover planning</p>
 
         <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 mb-4 text-center">
           <p className="text-sm text-ink mb-2">Just want to have a look around?</p>

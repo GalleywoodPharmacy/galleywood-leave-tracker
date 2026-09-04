@@ -57,7 +57,7 @@ export default function SignupForm() {
     <div className="min-h-screen flex items-center justify-center bg-page px-4">
       <div className="w-full max-w-sm">
         <h1 className="text-xl text-header text-center mb-1">Create your business account</h1>
-        <p className="text-ink-soft text-center text-sm mb-8">Staff Leave &amp; Rota</p>
+        <p className="text-ink-soft text-center text-sm mb-8">Powered by Smart Team And Rota (STAR)</p>
 
         <form onSubmit={handleSubmit} className="bg-white border border-line rounded-xl p-6 space-y-4">
           <div>

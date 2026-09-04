@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
 const apiKey = process.env.RESEND_API_KEY;
-const emailFromEnv = process.env.EMAIL_FROM || "Staff Leave & Rota <leave@example.com>";
+const emailFromEnv = process.env.EMAIL_FROM || "Smart Team And Rota <leave@example.com>";
 const resend = apiKey ? new Resend(apiKey) : null;
 
 const APP_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
@@ -48,7 +48,7 @@ export async function sendWelcomeEmail(params: {
 }) {
   await send(
     params.email,
-    `Welcome to ${params.organizationName}'s Staff Leave & Rota`,
+    `Welcome to ${params.organizationName}'s Smart Team And Rota (STAR)`,
     `<p>Hi ${params.managerName},</p>
      <p>Your account for <strong>${params.organizationName}</strong> is all set up.</p>
      <p>Sign in any time at <a href="${APP_URL}/login">${APP_URL}/login</a> using this email address
