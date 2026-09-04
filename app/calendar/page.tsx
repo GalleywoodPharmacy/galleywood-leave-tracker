@@ -4,7 +4,7 @@ import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getMonthCalendarData } from "@/lib/calendar";
-import { getOrgOpenWeekdays, getOrgBranding, getOrgBlackoutPeriods } from "@/lib/leave";
+import { getOrgOpenWeekdays, getOrgBranding, getOrgBlackoutPeriods, getOrgSaturdayTeamsConfig } from "@/lib/leave";
 import AppNav from "@/components/app-nav";
 import MonthGrid from "@/components/calendar/month-grid";
 import PrintButton from "@/components/calendar/print-button";
@@ -31,7 +31,7 @@ export default async function CalendarPage({
   const selStart = searchParams.selStart ?? null;
   const selEnd = searchParams.selEnd ?? null;
 
-  const [{ byDate, extraClosedDates }, staffList, openWeekdays, branding, blackoutPeriods] = await Promise.all([
+  const [{ byDate, extraClosedDates }, staffList, openWeekdays, branding, blackoutPeriods, saturdayTeamsConfig] = await Promise.all([
     getMonthCalendarData(year, month, organizationId),
     prisma.user.findMany({
       where: { isDemo: false, organizationId },
@@ -41,6 +41,7 @@ export default async function CalendarPage({
     getOrgOpenWeekdays(organizationId),
     getOrgBranding(organizationId),
     getOrgBlackoutPeriods(organizationId, year),
+    getOrgSaturdayTeamsConfig(organizationId),
   ]);
 
   const prev = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
@@ -125,6 +126,7 @@ export default async function CalendarPage({
               selStart={selStart}
               selEnd={selEnd}
               openWeekdays={openWeekdays}
+              saturdayTeamsConfig={saturdayTeamsConfig}
             />
           </div>
           <div className="print:hidden space-y-4">

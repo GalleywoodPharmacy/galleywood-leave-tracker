@@ -9,6 +9,7 @@ import {
   type BankHolidayBreakdownItem,
   type OpenWeekdays,
   type BlackoutPeriod,
+  type SaturdayTeamsConfig,
 } from "./business-rules";
 
 export async function loadExtraClosedDates(organizationId: string): Promise<Map<string, string>> {
@@ -140,6 +141,30 @@ export async function getOrgBlackoutPeriods(organizationId: string, year: number
   }));
 
   return [...recurring, ...custom];
+}
+
+/**
+ * The business's alternating Saturday teams config, if they use this
+ * feature — two rotating groups of named staff shown on the Calendar.
+ * Comma-separated name lists are split and trimmed; empty names filtered.
+ */
+export async function getOrgSaturdayTeamsConfig(organizationId: string): Promise<SaturdayTeamsConfig> {
+  const org = await prisma.organization.findUniqueOrThrow({
+    where: { id: organizationId },
+    select: {
+      saturdayTeamsEnabled: true,
+      saturdayTeamAnchorDate: true,
+      saturdayTeamANames: true,
+      saturdayTeamBNames: true,
+    },
+  });
+  const split = (s: string) => s.split(",").map((n) => n.trim()).filter(Boolean);
+  return {
+    enabled: org.saturdayTeamsEnabled,
+    anchorDateKey: org.saturdayTeamAnchorDate ? org.saturdayTeamAnchorDate.toISOString().slice(0, 10) : null,
+    teamANames: split(org.saturdayTeamANames),
+    teamBNames: split(org.saturdayTeamBNames),
+  };
 }
 
 export async function computeHoursForRangeForUser(

@@ -124,6 +124,9 @@ export default function LoginForm({
         <p className="text-center text-sm text-ink-soft mt-6">
           New here? Ask a manager to set up your account in Settings.
         </p>
+        <p className="text-center text-sm text-ink-soft mt-2">
+          Starting a new business? <a href="/signup" className="text-primary hover:underline">Create an account</a>
+        </p>
       </div>
     </div>
   );

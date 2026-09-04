@@ -76,6 +76,18 @@ model Organization {
   preEasterBlackoutEnabled    Boolean @default(true)
   preEasterBlackoutWeeks      Int     @default(1)
 
+  // Alternating Saturday teams (two rotating groups of named staff, shown
+  // on the Calendar) — a niche feature most businesses won't use, so it
+  // defaults off for new organizations. NOTE: this replaces a feature that
+  // used to be hardcoded with Galleywood's real staff names; Galleywood's
+  // row needs its own values re-entered via Settings after this migration
+  // (see the deploy notes) rather than being auto-populated here, the same
+  // way ExtraBlackoutPeriod's Christmas/Easter dates were handled earlier.
+  saturdayTeamsEnabled   Boolean   @default(false)
+  saturdayTeamAnchorDate DateTime? @db.Date
+  saturdayTeamANames     String    @default("")
+  saturdayTeamBNames     String    @default("")
+
   users            User[]
   leaveRequests    LeaveRequest[]    @relation("OrgLeaveRequests")
   extraClosedDates ExtraClosedDate[] @relation("OrgExtraClosedDates")

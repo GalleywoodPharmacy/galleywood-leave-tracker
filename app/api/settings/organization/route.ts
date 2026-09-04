@@ -20,6 +20,10 @@ const schema = z.object({
   preChristmasBlackoutWeeks: z.number().int().min(0).max(12).optional(),
   preEasterBlackoutEnabled: z.boolean().optional(),
   preEasterBlackoutWeeks: z.number().int().min(0).max(12).optional(),
+  saturdayTeamsEnabled: z.boolean().optional(),
+  saturdayTeamAnchorDate: z.string().optional(), // "YYYY-MM-DD"
+  saturdayTeamANames: z.string().optional(),
+  saturdayTeamBNames: z.string().optional(),
 });
 
 export async function PATCH(req: Request) {
@@ -33,7 +37,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid update" }, { status: 400 });
   }
 
-  const { logoUrl, themeColor, ...rest } = parsed.data;
+  const { logoUrl, themeColor, saturdayTeamAnchorDate, ...rest } = parsed.data;
 
   const organization = await prisma.organization.update({
     where: { id: session.user.organizationId },
@@ -43,6 +47,9 @@ export async function PATCH(req: Request) {
       // saving an empty string.
       ...(logoUrl !== undefined ? { logoUrl: logoUrl || null } : {}),
       ...(themeColor !== undefined ? { themeColor: themeColor || null } : {}),
+      ...(saturdayTeamAnchorDate !== undefined
+        ? { saturdayTeamAnchorDate: saturdayTeamAnchorDate ? new Date(saturdayTeamAnchorDate) : null }
+        : {}),
     },
   });
 

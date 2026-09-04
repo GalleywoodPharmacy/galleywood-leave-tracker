@@ -10,6 +10,7 @@ import RotaManager from "@/components/settings/rota-manager";
 import BusinessSettings from "@/components/settings/business-settings";
 import BlackoutPeriodsManager from "@/components/settings/blackout-periods-manager";
 import RecurringBlackoutSettings from "@/components/settings/recurring-blackout-settings";
+import SaturdayTeamsSettings from "@/components/settings/saturday-teams-settings";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -94,6 +95,24 @@ export default async function SettingsPage() {
               }))}
             />
           </div>
+        </section>
+
+        <section>
+          <h2 className="text-header text-lg mb-3">Saturday teams</h2>
+          <SaturdayTeamsSettings
+            config={{
+              enabled: organization.saturdayTeamsEnabled,
+              anchorDateKey: organization.saturdayTeamAnchorDate
+                ? organization.saturdayTeamAnchorDate.toISOString().slice(0, 10)
+                : null,
+              teamANames: organization.saturdayTeamANames
+                ? organization.saturdayTeamANames.split(",").map((n) => n.trim()).filter(Boolean)
+                : [],
+              teamBNames: organization.saturdayTeamBNames
+                ? organization.saturdayTeamBNames.split(",").map((n) => n.trim()).filter(Boolean)
+                : [],
+            }}
+          />
         </section>
       </main>
     </div>

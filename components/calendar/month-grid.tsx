@@ -1,4 +1,4 @@
-import { getClosedReason, getBlackoutLabelForDate, getSaturdayTeam, type BlackoutPeriod, type OpenWeekdays } from "@/lib/business-rules";
+import { getClosedReason, getBlackoutLabelForDate, getSaturdayTeam, type BlackoutPeriod, type OpenWeekdays, type SaturdayTeamsConfig } from "@/lib/business-rules";
 import type { DayData } from "@/lib/calendar";
 import LeaveChip from "./leave-chip";
 import SelectableDay from "./selectable-day";
@@ -43,6 +43,7 @@ export default function MonthGrid({
   selStart,
   selEnd,
   openWeekdays,
+  saturdayTeamsConfig,
 }: {
   year: number;
   month: number; // 1-12
@@ -55,6 +56,7 @@ export default function MonthGrid({
   selStart: string | null;
   selEnd: string | null;
   openWeekdays: OpenWeekdays;
+  saturdayTeamsConfig: SaturdayTeamsConfig;
 }) {
   const monthStart = new Date(Date.UTC(year, month - 1, 1));
   const monthEnd = new Date(Date.UTC(year, month, 0));
@@ -84,7 +86,7 @@ export default function MonthGrid({
           const closed = getClosedReason(date, extraClosedDates, openWeekdays);
           const blackoutLabel = !closed.closed ? getBlackoutLabelForDate(key, blackoutPeriods) : null;
           const data = byDate.get(key);
-          const saturdayTeam = getSaturdayTeam(date);
+          const saturdayTeam = getSaturdayTeam(date, saturdayTeamsConfig);
 
           return (
             <SelectableDay

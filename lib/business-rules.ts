@@ -462,21 +462,27 @@ export function getBlackoutLabelForDate(dateKey: string, periods: BlackoutPeriod
 /** Which of the two alternating Saturday teams is working, and which colour to show them in. */
 export type SaturdayTeam = { names: string[]; color: "flamingo" | "banana" };
 
-// 29 Sept 2026 is a Saturday — Team A (flamingo) works that day. The
-// following Saturday is Team B (banana), then it keeps alternating both
-// forward and backward from this anchor date indefinitely.
-const SATURDAY_TEAM_ANCHOR = "2026-09-29";
-const SATURDAY_TEAM_A = ["Anna", "Kirsty", "Irma", "Chloe"];
-const SATURDAY_TEAM_B = ["Aleks", "Hayley", "Chloe"];
+export type SaturdayTeamsConfig = {
+  enabled: boolean;
+  anchorDateKey: string | null; // "YYYY-MM-DD" — the reference Saturday Team A works
+  teamANames: string[];
+  teamBNames: string[];
+};
 
-/** Returns null for any date that isn't a Saturday. */
-export function getSaturdayTeam(date: Date): SaturdayTeam | null {
+/**
+ * Returns null for any date that isn't a Saturday, or if the business
+ * hasn't enabled/configured alternating Saturday teams. Business-specific
+ * (Settings → Business settings) rather than a fixed rule, since this is a
+ * niche feature most businesses won't use at all.
+ */
+export function getSaturdayTeam(date: Date, config: SaturdayTeamsConfig): SaturdayTeam | null {
+  if (!config.enabled || !config.anchorDateKey) return null;
   if (date.getUTCDay() !== 6) return null;
-  const anchor = new Date(SATURDAY_TEAM_ANCHOR + "T00:00:00.000Z");
+  const anchor = new Date(config.anchorDateKey + "T00:00:00.000Z");
   const target = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   const diffWeeks = Math.round((target.getTime() - anchor.getTime()) / 86400000) / 7;
   const weeksMod = ((diffWeeks % 2) + 2) % 2;
-  return weeksMod === 0 ? { names: SATURDAY_TEAM_A, color: "flamingo" } : { names: SATURDAY_TEAM_B, color: "banana" };
+  return weeksMod === 0 ? { names: config.teamANames, color: "flamingo" } : { names: config.teamBNames, color: "banana" };
 }
 
 export { sameDate };
