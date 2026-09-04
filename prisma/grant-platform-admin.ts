@@ -14,23 +14,11 @@ const prisma = new PrismaClient();
 const ADMIN_EMAIL = "you@example.com"; // <-- change this to your real login email
 
 async function main() {
-  const email = ADMIN_EMAIL.toLowerCase().trim();
-  const matches = await prisma.user.findMany({ where: { email } });
-
-  if (matches.length === 0) {
-    throw new Error(`No account found with email ${email}.`);
-  }
-  if (matches.length > 1) {
-    console.warn(
-      `Warning: ${matches.length} accounts share this email across different businesses — granting to the first one found. If that's not the right one, edit this script to target a specific account by id instead.`
-    );
-  }
-
   const user = await prisma.user.update({
-    where: { id: matches[0].id },
+    where: { email: ADMIN_EMAIL.toLowerCase().trim() },
     data: { isPlatformAdmin: true },
   });
-  console.log(`Granted platform admin to ${user.email} (id: ${user.id}).`);
+  console.log(`Granted platform admin to ${user.email}.`);
 }
 
 main()

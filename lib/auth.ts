@@ -27,29 +27,14 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const normalizedEmail = credentials.email.toLowerCase().trim();
-
-        // Email is unique per organization now, not globally, so the same
-        // address can match more than one account across different
-        // businesses. Try each in turn (oldest first, for a deterministic
-        // result) and use whichever one's password actually verifies —
-        // the standard pattern for this in multi-tenant apps. In the
-        // overwhelming majority of cases there's only one match anyway.
-        const candidates = await prisma.user.findMany({
-          where: { email: normalizedEmail },
-          orderBy: { createdAt: "asc" },
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email.toLowerCase().trim() },
         });
 
-        let user: (typeof candidates)[number] | null = null;
-        for (const candidate of candidates) {
-          if (!candidate.passwordHash) continue;
-          if (await verifyPassword(credentials.password, candidate.passwordHash)) {
-            user = candidate;
-            break;
-          }
-        }
+        if (!user || !user.passwordHash) return null;
 
-        if (!user) return null;
+        const valid = await verifyPassword(credentials.password, user.passwordHash);
+        if (!valid) return null;
 
         // A demo/trial login never keeps real data around: wipe its own
         // leave requests and overtime entries clean on every sign-in, so

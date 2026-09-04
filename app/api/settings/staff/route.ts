@@ -44,9 +44,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid staff details" }, { status: 400 });
   }
 
-  const existing = await prisma.user.findFirst({
-    where: { email: parsed.data.email.toLowerCase().trim(), organizationId: session.user.organizationId },
-  });
+  const existing = await prisma.user.findUnique({ where: { email: parsed.data.email.toLowerCase().trim() } });
   if (existing) return NextResponse.json({ error: "That email is already in use." }, { status: 409 });
 
   const passwordHash = await hashPassword(parsed.data.password);

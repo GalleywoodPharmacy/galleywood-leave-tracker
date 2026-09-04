@@ -19,9 +19,11 @@ export async function POST(req: Request) {
 
   const email = parsed.data.email.toLowerCase().trim();
 
-  // No uniqueness check needed here: email is only unique *within* an
-  // organization now, and signup always creates a brand-new one, so there's
-  // no existing organizationId+email pair this could ever collide with.
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    return NextResponse.json({ error: "That email is already in use." }, { status: 409 });
+  }
+
   const passwordHash = await hashPassword(parsed.data.password);
 
   // Organization and its first manager are created together, or not at all

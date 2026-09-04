@@ -101,13 +101,7 @@ model Organization {
 model User {
   id     String @id @default(cuid())
   name   String
-  // Unique per organization, not globally — two unrelated businesses can
-  // now each have a staff member using the same email address. Login
-  // (lib/auth.ts) looks up by email alone first (it doesn't know which
-  // business yet), then tries each matching account's password in turn —
-  // a standard multi-tenant pattern. @@index below keeps that lookup fast
-  // even though email is no longer globally unique on its own.
-  email  String
+  email  String @unique
 
   passwordHash String?
 
@@ -145,8 +139,6 @@ model User {
   overtimeEntries OvertimeEntry[] @relation("UserOvertimeEntries")
   rota            StaffRota?
 
-  @@unique([organizationId, email])
-  @@index([email])
   @@map("users")
 }
 

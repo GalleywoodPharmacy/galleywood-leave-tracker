@@ -13,7 +13,7 @@ const schema = z.object({
 
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !session.user.organizationId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
   const parsed = schema.safeParse(await req.json());
   if (!parsed.success) {
@@ -32,9 +32,7 @@ export async function PATCH(req: Request) {
 
   const normalizedEmail = parsed.data.email.toLowerCase().trim();
   if (normalizedEmail !== user.email) {
-    const existing = await prisma.user.findFirst({
-      where: { email: normalizedEmail, organizationId: session.user.organizationId },
-    });
+    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) {
       return NextResponse.json({ error: "That email is already in use." }, { status: 409 });
     }
