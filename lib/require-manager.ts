@@ -23,3 +23,15 @@ export async function requireSession(): Promise<Session | NextResponse> {
   if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   return session;
 }
+
+/**
+ * Cross-business access, separate from requireManager — for the /admin
+ * area that lists and deletes organizations platform-wide, not scoped to
+ * one business's own manager.
+ */
+export async function requirePlatformAdmin(): Promise<Session | NextResponse> {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (!session.user.isPlatformAdmin) return NextResponse.json({ error: "Not allowed" }, { status: 403 });
+  return session;
+}
