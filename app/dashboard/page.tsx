@@ -28,12 +28,16 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
 
   const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
-  const [balance, bankHolidayItems, requests, nextLeave, organization] = await Promise.all([
+  const [balance, bankHolidayItems, requests, overtimeEntries, nextLeave, organization] = await Promise.all([
     getBalance(session.user.id, selectedYear, organizationId),
     getBankHolidayBreakdownForUser(session.user.id, selectedYear, organizationId),
     prisma.leaveRequest.findMany({
       where: { userId: session.user.id, organizationId },
       orderBy: { submittedAt: "desc" },
+    }),
+    prisma.overtimeEntry.findMany({
+      where: { userId: session.user.id, organizationId },
+      orderBy: { date: "desc" },
     }),
     prisma.leaveRequest.findFirst({
       where: { userId: session.user.id, organizationId, status: "approved", endDate: { gte: todayUTC } },
@@ -52,7 +56,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
     hours: r.hours,
     notes: r.notes,
     status: r.status,
+    type: r.type as "annual" | "sick",
     submittedAt: r.submittedAt.toISOString(),
+  }));
+
+  const serializedOvertime = overtimeEntries.map((o) => ({
+    id: o.id,
+    date: o.date.toISOString(),
+    hours: o.hours,
+    notes: o.notes,
   }));
 
   return (
@@ -99,7 +111,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
 
         <div>
           <h2 className="text-header text-lg mb-3">History</h2>
-          <HistoryTable requests={serializedRequests} />
+          <HistoryTable requests={serializedRequests} overtimeEntries={serializedOvertime} />
         </div>
       </main>
     </div>

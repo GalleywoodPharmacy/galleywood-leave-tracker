@@ -56,7 +56,7 @@ export default async function TeamPage({ searchParams }: { searchParams: { year?
     yearOptions.sort((a, b) => a - b);
   }
 
-  const [pending, allRequests, staffBalances, openSickLeave, branding] = await Promise.all([
+  const [pending, allRequests, allOvertime, staffBalances, openSickLeave, branding] = await Promise.all([
     prisma.leaveRequest.findMany({
       where: { status: "pending", organizationId },
       include: { user: { select: { name: true, email: true } }, decidedBy: { select: { name: true } } },
@@ -67,10 +67,23 @@ export default async function TeamPage({ searchParams }: { searchParams: { year?
       include: { user: { select: { name: true, email: true } }, decidedBy: { select: { name: true } } },
       orderBy: { submittedAt: "desc" },
     }),
+    prisma.overtimeEntry.findMany({
+      where: { organizationId },
+      include: { user: { select: { name: true } } },
+      orderBy: { date: "desc" },
+    }),
     getAllStaffBalances(selectedYear, organizationId),
     getOpenSickLeave(organizationId),
     getOrgBranding(organizationId),
   ]);
+
+  const serializedOvertime = allOvertime.map((o) => ({
+    id: o.id,
+    date: o.date.toISOString(),
+    hours: o.hours,
+    notes: o.notes,
+    userName: o.user.name,
+  }));
 
   return (
     <div className="min-h-screen bg-page">
@@ -101,7 +114,7 @@ export default async function TeamPage({ searchParams }: { searchParams: { year?
 
         <section>
           <h2 className="text-header text-lg mb-3">History</h2>
-          <ActivityLog requests={allRequests.map(serialize)} />
+          <ActivityLog requests={allRequests.map(serialize)} overtimeEntries={serializedOvertime} />
         </section>
       </main>
     </div>
