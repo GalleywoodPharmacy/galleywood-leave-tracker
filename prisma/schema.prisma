@@ -77,22 +77,19 @@ model Organization {
 
   // Alternating Saturday teams (two rotating groups of named staff, shown
   // on the Calendar) — a niche feature most businesses won't use, so it
-  // defaults off for new organizations. NOTE: this replaces a feature that
-  // used to be hardcoded with Galleywood's real staff names; Galleywood's
-  // row needs its own values re-entered via Settings after this migration
-  // (see the deploy notes) rather than being auto-populated here, the same
-  // way ExtraBlackoutPeriod's Christmas/Easter dates were handled earlier.
+  // defaults off for new organizations.
   saturdayTeamsEnabled   Boolean   @default(false)
   saturdayTeamAnchorDate DateTime? @db.Date
   saturdayTeamANames     String    @default("")
   saturdayTeamBNames     String    @default("")
 
-  users            User[]
-  leaveRequests    LeaveRequest[]    @relation("OrgLeaveRequests")
-  extraClosedDates ExtraClosedDate[] @relation("OrgExtraClosedDates")
-  staffRotas       StaffRota[]       @relation("OrgStaffRotas")
-  overtimeEntries  OvertimeEntry[]   @relation("OrgOvertimeEntries")
-  blackoutPeriods  ExtraBlackoutPeriod[] @relation("OrgBlackoutPeriods")
+  users              User[]
+  leaveRequests      LeaveRequest[]        @relation("OrgLeaveRequests")
+  extraClosedDates   ExtraClosedDate[]     @relation("OrgExtraClosedDates")
+  staffRotas         StaffRota[]           @relation("OrgStaffRotas")
+  overtimeEntries    OvertimeEntry[]       @relation("OrgOvertimeEntries")
+  blackoutPeriods    ExtraBlackoutPeriod[] @relation("OrgBlackoutPeriods")
+  allowanceOverrides AllowanceOverride[]   @relation("OrgAllowanceOverrides")
 
   @@map("organizations")
 }
@@ -118,6 +115,10 @@ model User {
   // that never accumulates real/permanent data.
   isDemo Boolean @default(false)
 
+  // Unused leftover from an earlier design (allowance used to be a single
+  // saved figure); allowance is now always computed live — see
+  // AllowanceOverride below for the one exception, a per-year manual
+  // correction, which isn't this field.
   allowanceAnnualHours Float @default(200)
 
   startDate DateTime? @db.Date
@@ -132,19 +133,43 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  leaveRequests   LeaveRequest[] @relation("UserLeaveRequests")
-  decidedRequests LeaveRequest[] @relation("DecidedByUser")
-  loginTokens     LoginToken[]
-  overtimeEntries OvertimeEntry[] @relation("UserOvertimeEntries")
-  rota            StaffRota?
+  leaveRequests      LeaveRequest[]      @relation("UserLeaveRequests")
+  decidedRequests    LeaveRequest[]      @relation("DecidedByUser")
+  loginTokens        LoginToken[]
+  overtimeEntries    OvertimeEntry[]     @relation("UserOvertimeEntries")
+  rota               StaffRota?
+  allowanceOverrides AllowanceOverride[]
 
   @@map("users")
 }
 
-model LeaveRequest {
-  id     String    @id @default(cuid())
+// A manual correction to one person's automatically-calculated annual
+// leave allowance, for one specific year — everything else about the
+// calculation (rota, bank holidays, statutory weeks, pro-rating) still
+// applies to every other year as normal; this only overrides the single
+// year it's set for. Rare, exceptional use — most businesses will never
+// need one.
+model AllowanceOverride {
+  id     String @id @default(cuid())
   userId String
-  user   User      @relation("UserLeaveRequests", fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  year   Int
+  hours  Float
+
+  organizationId String
+  organization   Organization @relation("OrgAllowanceOverrides", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, year])
+  @@map("allowance_overrides")
+}
+
+model LeaveRequest {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation("UserLeaveRequests", fields: [userId], references: [id], onDelete: Cascade)
 
   startDate DateTime @db.Date
   endDate   DateTime @db.Date
@@ -249,10 +274,7 @@ model StaffRota {
 // A named date range a business wants to grey out on the Calendar as a
 // "no leave requests, please" period (not a closure — the business is
 // still open, staff still work) — fully custom per organization, e.g. a
-// retail business's peak season. Unlike the old hardcoded pre-Christmas/
-// pre-Easter periods this replaces, these are literal one-off date ranges
-// (like ExtraClosedDate) rather than a rule that recomputes every year, so
-// a business re-adds next year's blackout periods when the time comes.
+// retail business's peak season.
 model ExtraBlackoutPeriod {
   id        String   @id @default(cuid())
   label     String

@@ -225,6 +225,8 @@ export async function getBankHolidayBreakdownForUser(
 
 export type LeaveBalance = {
   allowanceHours: number;
+  isAllowanceOverridden: boolean;
+  calculatedAllowanceHours: number;
   bankHolidayHours: number;
   approvedHours: number;
   pendingHours: number;
@@ -249,6 +251,11 @@ function round1(n: number): number {
  * falls within the requested year, their entitlement for that year is
  * pro-rated automatically.
  *
+ * A manual AllowanceOverride for this person and year, if one exists,
+ * takes over completely as the real allowanceHours figure — a deliberate
+ * correction, not just a display tweak, so it feeds into the actual
+ * remaining-hours check used when someone requests leave.
+ *
  * A request "belongs" to the calendar year its start date falls in — a
  * request starting 2 Jul 2027 counts against 2027's balance, regardless of
  * what year it was submitted or approved in.
@@ -266,7 +273,7 @@ export async function getBalance(
   const yearStart = new Date(Date.UTC(year, 0, 1));
   const yearEnd = new Date(Date.UTC(year, 11, 31));
 
-  const [requests, rota, extraClosedDates, startDate, policy] = await Promise.all([
+  const [requests, rota, extraClosedDates, startDate, policy, override] = await Promise.all([
     prisma.leaveRequest.findMany({
       where: {
         userId,
@@ -282,11 +289,12 @@ export async function getBalance(
     loadExtraClosedDates(organizationId),
     getStartDateForUser(userId, organizationId),
     getOrgLeavePolicy(organizationId),
+    prisma.allowanceOverride.findUnique({ where: { userId_year: { userId, year } } }),
   ]);
 
   const approvedHours = round1(requests.filter((r) => r.status === "approved").reduce((sum, r) => sum + r.hours, 0));
   const pendingHours = round1(requests.filter((r) => r.status === "pending").reduce((sum, r) => sum + r.hours, 0));
-  const allowanceHours = calculateStatutoryAnnualHours(
+  const calculatedAllowanceHours = calculateStatutoryAnnualHours(
     rota,
     year,
     extraClosedDates,
@@ -294,6 +302,13 @@ export async function getBalance(
     policy.statutoryLeaveWeeks,
     policy.bankHolidaysIncludedInAllowance
   );
+  // A manual override, if one is set for this person and year, takes over
+  // completely — it's a deliberate correction, not just a display tweak,
+  // so it flows through to the real remaining-hours figure used
+  // everywhere (balance cards, the Team table, and the check that stops
+  // someone requesting more leave than they actually have).
+  const allowanceHours = override ? override.hours : calculatedAllowanceHours;
+  const isAllowanceOverridden = !!override;
   const bankHolidayFromDateKey =
     startDate && startDate.getUTCFullYear() === year ? startDate.toISOString().slice(0, 10) : undefined;
   // Only shown as a deduction line when the business actually deducts bank
@@ -307,6 +322,8 @@ export async function getBalance(
 
   return {
     allowanceHours,
+    isAllowanceOverridden,
+    calculatedAllowanceHours,
     bankHolidayHours,
     approvedHours,
     pendingHours,
@@ -330,15 +347,22 @@ export async function getAllStaffBalances(year: number, organizationId: string) 
 /**
  * All staff with their automatically-calculated annual allowance for each
  * of the given years (current year + however many ahead) — for the
- * Staff & allowances table in Settings. Fully live from each person's rota
- * and start date; there's no manually-saved figure to keep in sync any more.
+ * Staff & allowances table in Settings. Each year respects a manual
+ * AllowanceOverride if one's been set for that specific person and year;
+ * otherwise it's fully live from that person's rota and start date.
  */
 export async function getAllStaffAnnualAllowances(years: number[], organizationId: string) {
-  const [users, extraClosedDates, policy] = await Promise.all([
+  const [users, extraClosedDates, policy, overrides] = await Promise.all([
     prisma.user.findMany({ where: { isDemo: false, organizationId }, orderBy: { name: "asc" }, include: { rota: true } }),
     loadExtraClosedDates(organizationId),
     getOrgLeavePolicy(organizationId),
+    prisma.allowanceOverride.findMany({ where: { organizationId } }),
   ]);
+
+  const overrideMap = new Map<string, number>();
+  for (const o of overrides) {
+    overrideMap.set(`${o.userId}:${o.year}`, o.hours);
+  }
 
   return users.map((u) => {
     const rota: WeeklyRota = u.rota
@@ -359,17 +383,23 @@ export async function getAllStaffAnnualAllowances(years: number[], organizationI
       email: u.email,
       isManager: u.isManager,
       startDate: u.startDate ? u.startDate.toISOString().slice(0, 10) : null,
-      allowances: years.map((year) => ({
-        year,
-        hours: calculateStatutoryAnnualHours(
+      allowances: years.map((year) => {
+        const calculatedHours = calculateStatutoryAnnualHours(
           rota,
           year,
           extraClosedDates,
           u.startDate,
           policy.statutoryLeaveWeeks,
           policy.bankHolidaysIncludedInAllowance
-        ),
-      })),
+        );
+        const overrideHours = overrideMap.get(`${u.id}:${year}`);
+        return {
+          year,
+          hours: overrideHours !== undefined ? overrideHours : calculatedHours,
+          calculatedHours,
+          isOverridden: overrideHours !== undefined,
+        };
+      }),
     };
   });
 }
