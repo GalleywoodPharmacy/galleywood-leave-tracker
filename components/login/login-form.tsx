@@ -125,6 +125,9 @@ export default function LoginForm() {
         <p className="text-center text-sm text-ink-soft mt-2">
           Starting a new business? <a href="/signup" className="text-primary hover:underline">Create an account</a>
         </p>
+        <p className="text-center text-sm text-ink-soft mt-2">
+          <a href="/faq" className="text-primary hover:underline">Frequently asked questions</a>
+        </p>
       </div>
     </div>
   );

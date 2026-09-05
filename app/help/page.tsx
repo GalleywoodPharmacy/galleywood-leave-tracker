@@ -58,8 +58,16 @@ export default async function HelpPage() {
         </Section>
 
         <Section title="Calendar colours">
-          <p>Amber = requested, teal = approved, red = declined, and a diagonal pattern marks a day the pharmacy is closed.</p>
+          <p>Amber = requested, blue = approved, red = declined, and a diagonal pattern marks a day the business is closed.</p>
         </Section>
+
+        <p className="text-sm text-ink-soft">
+          Looking for something more? See the full{" "}
+          <a href="/faq" className="text-primary hover:underline">
+            FAQ
+          </a>
+          .
+        </p>
       </main>
     </div>
   );
