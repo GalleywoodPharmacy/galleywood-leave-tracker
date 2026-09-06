@@ -16,12 +16,24 @@ function dayKey(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
-export type NeedsCoverageDay = { requestId: string; dateKey: string; date: Date; name: string };
+export type NeedsCoverageDay = {
+  requestId: string;
+  dateKey: string;
+  date: Date;
+  name: string;
+  status: "pending" | "approved";
+};
 
 /**
- * Open days in the next `daysAhead` with approved leave and no cover set —
+ * Open days in the next `daysAhead` with leave that has no cover set —
  * one entry per person per day, since cover now lives on the leave request
  * itself rather than a separate table.
+ *
+ * Includes both pending and approved leave (and sick leave, which is
+ * always created as "approved" immediately) — a gap is worth flagging and
+ * arranging cover for as soon as it's logged, not only once a manager has
+ * gotten around to approving it. `status` on each entry lets the UI show
+ * which is which if it wants to.
  *
  * excludeUserId, if given, leaves that person's own leave out of the list
  * entirely — they still see it (and can add cover) on the Calendar as
@@ -35,11 +47,11 @@ export async function getNeedsCoverage(
   const start = todayUTC();
   const end = addDays(start, daysAhead);
 
-  const [approvedLeave, extraClosedDates, openWeekdays] = await Promise.all([
+  const [leave, extraClosedDates, openWeekdays] = await Promise.all([
     prisma.leaveRequest.findMany({
       where: {
         organizationId,
-        status: "approved",
+        status: { in: ["pending", "approved"] },
         startDate: { lte: end },
         endDate: { gte: start },
         ...(excludeUserId ? { userId: { not: excludeUserId } } : {}),
@@ -51,7 +63,7 @@ export async function getNeedsCoverage(
   ]);
 
   const result: NeedsCoverageDay[] = [];
-  for (const r of approvedLeave) {
+  for (const r of leave) {
     const periodCover = (r.coverName as CoverInfo | null) ?? null;
     const overrides = (r.coverNameByDate as Record<string, CoverInfo> | null) ?? {};
 
@@ -63,7 +75,13 @@ export async function getNeedsCoverage(
         const dk = dayKey(cursor);
         const cover = overrides[dk] ?? periodCover;
         if (!cover) {
-          result.push({ requestId: r.id, dateKey: dk, date: new Date(cursor), name: r.user.name });
+          result.push({
+            requestId: r.id,
+            dateKey: dk,
+            date: new Date(cursor),
+            name: r.user.name,
+            status: r.status as "pending" | "approved",
+          });
         }
       }
       cursor = addDays(cursor, 1);
