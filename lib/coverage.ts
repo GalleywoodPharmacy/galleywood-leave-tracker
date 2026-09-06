@@ -25,15 +25,22 @@ export type NeedsCoverageDay = {
 };
 
 /**
- * Open days in the next `daysAhead` with leave that has no cover set —
- * one entry per person per day, since cover now lives on the leave request
- * itself rather than a separate table.
+ * Leave with no cover set, from today onward — one entry per person per
+ * day, since cover now lives on the leave request itself rather than a
+ * separate table.
  *
  * Includes both pending and approved leave (and sick leave, which is
  * always created as "approved" immediately) — a gap is worth flagging and
  * arranging cover for as soon as it's logged, not only once a manager has
  * gotten around to approving it. `status` on each entry lets the UI show
- * which is which if it wants to.
+ * which is which if it wants to. An entry only disappears once cover is
+ * actually assigned for that day — it isn't time-limited otherwise, so a
+ * gap booked years out still shows up today.
+ *
+ * daysAhead, if given, caps how far into the future to look (used by the
+ * weekly digest, which only wants what's coming up soon); omit it for no
+ * upper bound at all — e.g. the Coverage page, which should show every
+ * outstanding gap regardless of how far away it is.
  *
  * excludeUserId, if given, leaves that person's own leave out of the list
  * entirely — they still see it (and can add cover) on the Calendar as
@@ -41,18 +48,18 @@ export type NeedsCoverageDay = {
  */
 export async function getNeedsCoverage(
   organizationId: string,
-  daysAhead = 60,
+  daysAhead?: number,
   excludeUserId?: string
 ): Promise<NeedsCoverageDay[]> {
   const start = todayUTC();
-  const end = addDays(start, daysAhead);
+  const end = daysAhead !== undefined ? addDays(start, daysAhead) : null;
 
   const [leave, extraClosedDates, openWeekdays] = await Promise.all([
     prisma.leaveRequest.findMany({
       where: {
         organizationId,
         status: { in: ["pending", "approved"] },
-        startDate: { lte: end },
+        ...(end ? { startDate: { lte: end } } : {}),
         endDate: { gte: start },
         ...(excludeUserId ? { userId: { not: excludeUserId } } : {}),
       },
@@ -68,7 +75,7 @@ export async function getNeedsCoverage(
     const overrides = (r.coverNameByDate as Record<string, CoverInfo> | null) ?? {};
 
     const rangeStart = r.startDate.getTime() > start.getTime() ? r.startDate : start;
-    const rangeEnd = r.endDate.getTime() < end.getTime() ? r.endDate : end;
+    const rangeEnd = end && r.endDate.getTime() > end.getTime() ? end : r.endDate;
     let cursor = new Date(rangeStart);
     while (cursor.getTime() <= rangeEnd.getTime()) {
       if (!getClosedReason(cursor, extraClosedDates, openWeekdays).closed) {

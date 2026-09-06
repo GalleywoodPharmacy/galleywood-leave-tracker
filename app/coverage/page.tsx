@@ -11,7 +11,7 @@ export default async function CoveragePage() {
   if (!session || !session.user.organizationId) redirect("/login");
 
   const [needsCoverage, branding] = await Promise.all([
-    getNeedsCoverage(session.user.organizationId, 60, session.user.id),
+    getNeedsCoverage(session.user.organizationId, undefined, session.user.id),
     getOrgBranding(session.user.organizationId),
   ]);
 
@@ -25,9 +25,10 @@ export default async function CoveragePage() {
         <section>
           <h2 className="text-header text-lg mb-3">Needs coverage</h2>
           <p className="text-xs text-ink-soft mb-3">
-            Open days with approved leave and no one covering yet — not including your own leave, which you can
-            still set cover for any time on the Calendar. To assign a specific colleague, name someone outside the
-            team, or set cover in advance for pending leave, use the Calendar instead — click any day.
+            Every open day with pending or approved leave and no one covering yet — not including your own leave,
+            which you can still set cover for any time on the Calendar. A day only drops off this list once cover
+            is actually assigned to it; there's no cut-off for how far in the future it is. To assign a specific
+            colleague or name someone outside the team, use the Calendar instead — click any day.
           </p>
           <NeedsCoverageList
             items={needsCoverage.map((d) => ({ requestId: d.requestId, dateKey: d.dateKey, name: d.name }))}
