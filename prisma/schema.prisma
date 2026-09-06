@@ -294,6 +294,16 @@ model ExtraBlackoutPeriod {
   @@map("extra_blackout_periods")
 }
 
+// Tracks the last time a scheduled job genuinely ran, as a self-defence
+// guard — independent of the cron schedule/secret being correct, this
+// stops the job from actually doing its work again if something (a
+// misfiring trigger, a retried request, anything) invokes the endpoint
+// again too soon after a real run. One fixed row per job.
+model CronState {
+  id        String    @id
+  lastRanAt DateTime?
+}
+
 // Extra hours worked beyond the rota, self-logged by whoever's clicking on
 // the Calendar — always immediately recorded (no approval workflow), and
 // intentionally separate from LeaveRequest since this is hours *worked*,

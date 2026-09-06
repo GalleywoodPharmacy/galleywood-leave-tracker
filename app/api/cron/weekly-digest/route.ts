@@ -23,6 +23,27 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Self-defence guard, independent of the schedule/secret being correct:
+  // if this genuinely ran within the last 20 hours, don't run again —
+  // stops a misfiring or duplicate trigger from actually sending twice,
+  // regardless of what caused the extra request.
+  const JOB_ID = "weekly-digest";
+  const GUARD_HOURS = 20;
+  const state = await prisma.cronState.findUnique({ where: { id: JOB_ID } });
+  if (state?.lastRanAt) {
+    const hoursSinceLastRun = (Date.now() - state.lastRanAt.getTime()) / (1000 * 60 * 60);
+    if (hoursSinceLastRun < GUARD_HOURS) {
+      return NextResponse.json({ ok: true, skipped: true, reason: "Ran too recently" });
+    }
+  }
+  // Claim the run immediately, before doing any of the actual work, so a
+  // near-simultaneous second request sees this and skips too.
+  await prisma.cronState.upsert({
+    where: { id: JOB_ID },
+    update: { lastRanAt: new Date() },
+    create: { id: JOB_ID, lastRanAt: new Date() },
+  });
+
   const now = new Date();
   const in14Days = new Date(now);
   in14Days.setUTCDate(in14Days.getUTCDate() + 14);
