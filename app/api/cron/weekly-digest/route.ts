@@ -10,11 +10,17 @@ import { sendWeeklyDigestEmail } from "@/lib/email";
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  // Fail closed, not open: if CRON_SECRET isn't configured at all, this
+  // must refuse to run rather than silently becoming a wide-open,
+  // unauthenticated endpoint that anyone (a bot, a scanner, anything) could
+  // hit and trigger an email blast to every business on the platform.
+  if (!secret) {
+    console.error("CRON_SECRET is not set - refusing to run the weekly digest.");
+    return NextResponse.json({ error: "Not configured" }, { status: 500 });
+  }
+  const auth = req.headers.get("authorization");
+  if (auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const now = new Date();
