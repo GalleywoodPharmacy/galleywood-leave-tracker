@@ -23,11 +23,14 @@ export async function GET(req: Request) {
 
   const organizations = await prisma.organization.findMany({ select: { id: true, name: true } });
 
-  let totalManagersNotified = 0;
+  let totalRecipientsNotified = 0;
 
   for (const org of organizations) {
-    const [managers, upcomingApproved, needsCoverage] = await Promise.all([
-      prisma.user.findMany({ where: { isManager: true, organizationId: org.id }, select: { email: true } }),
+    // Every staff member gets this now, not just managers — so anyone can
+    // spot and volunteer for an uncovered day, not just whoever reviews
+    // requests.
+    const [recipients, upcomingApproved, needsCoverage] = await Promise.all([
+      prisma.user.findMany({ where: { organizationId: org.id, isDemo: false }, select: { email: true } }),
       prisma.leaveRequest.findMany({
         where: { organizationId: org.id, status: "approved", startDate: { lte: in14Days }, endDate: { gte: now } },
         include: { user: { select: { name: true } } },
@@ -36,10 +39,10 @@ export async function GET(req: Request) {
       getNeedsCoverage(org.id, 14),
     ]);
 
-    if (managers.length === 0) continue;
+    if (recipients.length === 0) continue;
 
     await sendWeeklyDigestEmail({
-      managerEmails: managers.map((m) => m.email),
+      recipientEmails: recipients.map((r) => r.email),
       organizationName: org.name,
       upcomingApproved: upcomingApproved.map((r) => ({
         name: r.user.name,
@@ -49,8 +52,8 @@ export async function GET(req: Request) {
       coverageGapDates: needsCoverage.map((d) => d.date),
     });
 
-    totalManagersNotified += managers.length;
+    totalRecipientsNotified += recipients.length;
   }
 
-  return NextResponse.json({ ok: true, organizationsProcessed: organizations.length, managersNotified: totalManagersNotified });
+  return NextResponse.json({ ok: true, organizationsProcessed: organizations.length, recipientsNotified: totalRecipientsNotified });
 }

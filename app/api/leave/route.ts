@@ -4,7 +4,7 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { computeHoursForRangeForUser, getBalance, getOrgBranding } from "@/lib/leave";
-import { sendLeaveSubmittedEmail } from "@/lib/email";
+import { sendLeaveSubmittedEmail, sendLeaveRequestReceivedEmail } from "@/lib/email";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -88,6 +88,17 @@ export async function POST(req: Request) {
     hours,
     requestId: request.id,
   });
+
+  if (session.user.email) {
+    await sendLeaveRequestReceivedEmail({
+      requesterEmail: session.user.email,
+      organizationName: branding.name,
+      requesterName: session.user.name ?? "there",
+      startDate: start,
+      endDate: end,
+      hours,
+    });
+  }
 
   return NextResponse.json({ request }, { status: 201 });
 }

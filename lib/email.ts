@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
 const apiKey = process.env.RESEND_API_KEY;
-const emailFromEnv = process.env.EMAIL_FROM || "Smart Team And Rota <leave@example.com>";
+const emailFromEnv = process.env.EMAIL_FROM || "SmartTeamAndRota <leave@example.com>";
 const resend = apiKey ? new Resend(apiKey) : null;
 
 const APP_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
@@ -48,12 +48,37 @@ export async function sendWelcomeEmail(params: {
 }) {
   await send(
     params.email,
-    `Welcome to ${params.organizationName}'s Smart Team And Rota (STAR)`,
+    `Welcome to ${params.organizationName}'s SmartTeamAndRota (STAR)`,
     `<p>Hi ${params.managerName},</p>
      <p>Your account for <strong>${params.organizationName}</strong> is all set up.</p>
      <p>Sign in any time at <a href="${APP_URL}/login">${APP_URL}/login</a> using this email address
      (<strong>${params.email}</strong>) and the password you chose when signing up.</p>
      <p><a href="${APP_URL}/login">Go to the site</a></p>`,
+    params.organizationName
+  );
+}
+
+/**
+ * Confirms to the person who just submitted an annual leave request that
+ * it's been received — separate from sendLeaveSubmittedEmail (which tells
+ * managers a new request needs a decision) and from
+ * sendLeaveDecisionEmail (which tells them once that decision is made).
+ */
+export async function sendLeaveRequestReceivedEmail(params: {
+  requesterEmail: string;
+  organizationName: string;
+  requesterName: string;
+  startDate: Date;
+  endDate: Date;
+  hours: number;
+}) {
+  await send(
+    params.requesterEmail,
+    `Your leave request has been received`,
+    `<p>Hi ${params.requesterName},</p>
+     <p>Your leave request for ${fmtDate(params.startDate)} – ${fmtDate(params.endDate)} (${params.hours}h)
+     has been received and is now pending approval. You'll get another email as soon as a decision is made.</p>
+     <p><a href="${APP_URL}/dashboard">View My Leave</a></p>`,
     params.organizationName
   );
 }
@@ -99,20 +124,25 @@ export async function sendLeaveDecisionEmail(params: {
   );
 }
 
+/**
+ * Weekly digest — upcoming approved leave and coverage gaps. Sent to every
+ * staff member, not just managers, so anyone can spot and volunteer for an
+ * uncovered day, not just the people reviewing requests.
+ */
 export async function sendWeeklyDigestEmail(params: {
-  managerEmails: string[];
+  recipientEmails: string[];
   organizationName: string;
   upcomingApproved: { name: string; startDate: Date; endDate: Date }[];
   coverageGapDates: Date[];
 }) {
-  if (params.managerEmails.length === 0) return;
+  if (params.recipientEmails.length === 0) return;
   const leaveRows = params.upcomingApproved
     .map((r) => `<li>${r.name} — ${fmtDate(r.startDate)} to ${fmtDate(r.endDate)}</li>`)
     .join("");
   const gapRows = params.coverageGapDates.map((d) => `<li>${fmtDate(d)}</li>`).join("");
 
   await send(
-    params.managerEmails,
+    params.recipientEmails,
     `Weekly leave & coverage digest — ${params.organizationName}`,
     `<h3>Upcoming approved leave</h3><ul>${leaveRows || "<li>None</li>"}</ul>
      <h3>Coverage gaps</h3><ul>${gapRows || "<li>None</li>"}</ul>
