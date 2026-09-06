@@ -37,10 +37,25 @@ export async function getRotaForUser(userId: string, organizationId: string): Pr
   };
 }
 
-/** This person's start date, if a manager has set one — used to pro-rate their first year's entitlement. */
-async function getStartDateForUser(userId: string, organizationId: string): Promise<Date | null> {
-  const user = await prisma.user.findFirst({ where: { id: userId, organizationId }, select: { startDate: true } });
-  return user?.startDate ?? null;
+/**
+ * A person's own overrides to organization-wide leave policy: their start
+ * date (for pro-rating their first year) and, rarely, whether bank
+ * holidays count against their own allowance specifically — null means
+ * "follow the business's general setting", which is the normal case for
+ * almost everyone.
+ */
+async function getUserPolicyFields(
+  userId: string,
+  organizationId: string
+): Promise<{ startDate: Date | null; bankHolidaysIncludedOverride: boolean | null }> {
+  const user = await prisma.user.findFirst({
+    where: { id: userId, organizationId },
+    select: { startDate: true, bankHolidaysIncludedOverride: true },
+  });
+  return {
+    startDate: user?.startDate ?? null,
+    bankHolidaysIncludedOverride: user?.bankHolidaysIncludedOverride ?? null,
+  };
 }
 
 /**
@@ -186,19 +201,20 @@ export async function computeStatutoryAnnualHoursForUser(
   year: number,
   organizationId: string
 ): Promise<number> {
-  const [rota, extraClosedDates, startDate, policy] = await Promise.all([
+  const [rota, extraClosedDates, userFields, policy] = await Promise.all([
     getRotaForUser(userId, organizationId),
     loadExtraClosedDates(organizationId),
-    getStartDateForUser(userId, organizationId),
+    getUserPolicyFields(userId, organizationId),
     getOrgLeavePolicy(organizationId),
   ]);
+  const deductBankHolidays = userFields.bankHolidaysIncludedOverride ?? policy.bankHolidaysIncludedInAllowance;
   return calculateStatutoryAnnualHours(
     rota,
     year,
     extraClosedDates,
-    startDate,
+    userFields.startDate,
     policy.statutoryLeaveWeeks,
-    policy.bankHolidaysIncludedInAllowance
+    deductBankHolidays
   );
 }
 
@@ -213,14 +229,30 @@ export async function getBankHolidayBreakdownForUser(
   year: number,
   organizationId: string
 ): Promise<BankHolidayBreakdownItem[]> {
-  const [rota, extraClosedDates, startDate] = await Promise.all([
+  const [rota, extraClosedDates, userFields] = await Promise.all([
     getRotaForUser(userId, organizationId),
     loadExtraClosedDates(organizationId),
-    getStartDateForUser(userId, organizationId),
+    getUserPolicyFields(userId, organizationId),
   ]);
+  const startDate = userFields.startDate;
   if (startDate && startDate.getUTCFullYear() > year) return [];
   const fromDateKey = startDate && startDate.getUTCFullYear() === year ? startDate.toISOString().slice(0, 10) : undefined;
   return bankHolidayBreakdownForRota(rota, year, extraClosedDates, fromDateKey);
+}
+
+/**
+ * Whether bank holidays actually count against this specific person's
+ * allowance — their own override if they have one, otherwise the
+ * business's general setting. Used wherever the UI needs to show the
+ * real answer for one person (e.g. the Dashboard's bank holiday card),
+ * as distinct from the org's raw setting alone.
+ */
+export async function getEffectiveBankHolidaysIncludedForUser(userId: string, organizationId: string): Promise<boolean> {
+  const [userFields, policy] = await Promise.all([
+    getUserPolicyFields(userId, organizationId),
+    getOrgLeavePolicy(organizationId),
+  ]);
+  return userFields.bankHolidaysIncludedOverride ?? policy.bankHolidaysIncludedInAllowance;
 }
 
 export type LeaveBalance = {
@@ -273,7 +305,7 @@ export async function getBalance(
   const yearStart = new Date(Date.UTC(year, 0, 1));
   const yearEnd = new Date(Date.UTC(year, 11, 31));
 
-  const [requests, rota, extraClosedDates, startDate, policy, override] = await Promise.all([
+  const [requests, rota, extraClosedDates, userFields, policy, override] = await Promise.all([
     prisma.leaveRequest.findMany({
       where: {
         userId,
@@ -287,10 +319,13 @@ export async function getBalance(
     }),
     getRotaForUser(userId, organizationId),
     loadExtraClosedDates(organizationId),
-    getStartDateForUser(userId, organizationId),
+    getUserPolicyFields(userId, organizationId),
     getOrgLeavePolicy(organizationId),
     prisma.allowanceOverride.findUnique({ where: { userId_year: { userId, year } } }),
   ]);
+
+  const startDate = userFields.startDate;
+  const deductBankHolidays = userFields.bankHolidaysIncludedOverride ?? policy.bankHolidaysIncludedInAllowance;
 
   const approvedHours = round1(requests.filter((r) => r.status === "approved").reduce((sum, r) => sum + r.hours, 0));
   const pendingHours = round1(requests.filter((r) => r.status === "pending").reduce((sum, r) => sum + r.hours, 0));
@@ -300,7 +335,7 @@ export async function getBalance(
     extraClosedDates,
     startDate,
     policy.statutoryLeaveWeeks,
-    policy.bankHolidaysIncludedInAllowance
+    deductBankHolidays
   );
   // A manual override, if one is set for this person and year, takes over
   // completely — it's a deliberate correction, not just a display tweak,
@@ -311,11 +346,12 @@ export async function getBalance(
   const isAllowanceOverridden = !!override;
   const bankHolidayFromDateKey =
     startDate && startDate.getUTCFullYear() === year ? startDate.toISOString().slice(0, 10) : undefined;
-  // Only shown as a deduction line when the business actually deducts bank
-  // holidays from the allowance — otherwise it'd misleadingly imply hours
-  // were taken away when nothing was.
+  // Only shown as a deduction line when this person's bank holidays
+  // actually count against their allowance (business setting, or their
+  // own override) — otherwise it'd misleadingly imply hours were taken
+  // away when nothing was.
   const bankHolidayHours =
-    !policy.bankHolidaysIncludedInAllowance || (startDate && startDate.getUTCFullYear() > year)
+    !deductBankHolidays || (startDate && startDate.getUTCFullYear() > year)
       ? 0
       : bankHolidayHoursForRota(rota, year, extraClosedDates, bankHolidayFromDateKey);
   const remainingHours = round1(allowanceHours - approvedHours - pendingHours);
@@ -383,14 +419,16 @@ export async function getAllStaffAnnualAllowances(years: number[], organizationI
       email: u.email,
       isManager: u.isManager,
       startDate: u.startDate ? u.startDate.toISOString().slice(0, 10) : null,
+      bankHolidaysIncludedOverride: u.bankHolidaysIncludedOverride,
       allowances: years.map((year) => {
+        const deductBankHolidays = u.bankHolidaysIncludedOverride ?? policy.bankHolidaysIncludedInAllowance;
         const calculatedHours = calculateStatutoryAnnualHours(
           rota,
           year,
           extraClosedDates,
           u.startDate,
           policy.statutoryLeaveWeeks,
-          policy.bankHolidaysIncludedInAllowance
+          deductBankHolidays
         );
         const overrideHours = overrideMap.get(`${u.id}:${year}`);
         return {

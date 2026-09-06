@@ -12,6 +12,7 @@ export type StaffMember = {
   email: string;
   isManager: boolean;
   startDate: string | null;
+  bankHolidaysIncludedOverride: boolean | null;
   allowances: StaffAllowance[];
 };
 
@@ -133,6 +134,9 @@ function StaffRow({ member, years, zebra }: { member: StaffMember; years: number
   const [email, setEmail] = useState(member.email);
   const [newPassword, setNewPassword] = useState("");
   const [startDate, setStartDate] = useState(member.startDate ?? "");
+  const [bankHolidaysOverride, setBankHolidaysOverride] = useState<"default" | "true" | "false">(
+    member.bankHolidaysIncludedOverride === null ? "default" : member.bankHolidaysIncludedOverride ? "true" : "false"
+  );
 
   async function save() {
     setError(null);
@@ -144,6 +148,7 @@ function StaffRow({ member, years, zebra }: { member: StaffMember; years: number
         isManager,
         email,
         startDate,
+        bankHolidaysIncludedOverride: bankHolidaysOverride === "default" ? null : bankHolidaysOverride === "true",
         ...(newPassword.trim() ? { newPassword: newPassword.trim() } : {}),
       }),
     });
@@ -235,6 +240,22 @@ function StaffRow({ member, years, zebra }: { member: StaffMember; years: number
                   Manager
                 </label>
               </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs text-ink-soft mb-1">Bank holidays in allowance (for this person specifically)</label>
+                <select
+                  value={bankHolidaysOverride}
+                  onChange={(e) => setBankHolidaysOverride(e.target.value as "default" | "true" | "false")}
+                  className="w-full sm:w-auto rounded-lg border border-line px-2 py-1.5 text-sm bg-white"
+                >
+                  <option value="default">Follow business setting</option>
+                  <option value="true">Always included (deducted from their allowance)</option>
+                  <option value="false">Never included (separate paid days off)</option>
+                </select>
+                <p className="text-xs text-ink-soft mt-1">
+                  Rare — most staff should stay on "Follow business setting". Only change this for a genuine
+                  individual exception (e.g. a different contract term).
+                </p>
+              </div>
             </div>
 
             {error && <p className="text-sm text-declined mt-3">{error}</p>}
@@ -253,6 +274,9 @@ function StaffRow({ member, years, zebra }: { member: StaffMember; years: number
                   setNewPassword("");
                   setEmail(member.email);
                   setStartDate(member.startDate ?? "");
+                  setBankHolidaysOverride(
+                    member.bankHolidaysIncludedOverride === null ? "default" : member.bankHolidaysIncludedOverride ? "true" : "false"
+                  );
                 }}
                 className="rounded-lg border border-line text-sm px-4 py-1.5 hover:bg-card"
               >

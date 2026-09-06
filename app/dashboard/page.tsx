@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getBalance, getBankHolidayBreakdownForUser } from "@/lib/leave";
+import { getBalance, getBankHolidayBreakdownForUser, getEffectiveBankHolidaysIncludedForUser } from "@/lib/leave";
 import AppNav from "@/components/app-nav";
 import YearSelect from "@/components/year-select";
 import BalanceCards from "@/components/leave/balance-cards";
@@ -28,9 +28,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
 
   const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
-  const [balance, bankHolidayItems, requests, overtimeEntries, nextLeave, organization] = await Promise.all([
+  const [balance, bankHolidayItems, deductsFromAllowance, requests, overtimeEntries, nextLeave, organization] = await Promise.all([
     getBalance(session.user.id, selectedYear, organizationId),
     getBankHolidayBreakdownForUser(session.user.id, selectedYear, organizationId),
+    getEffectiveBankHolidaysIncludedForUser(session.user.id, organizationId),
     prisma.leaveRequest.findMany({
       where: { userId: session.user.id, organizationId },
       orderBy: { submittedAt: "desc" },
@@ -45,7 +46,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
     }),
     prisma.organization.findUniqueOrThrow({
       where: { id: organizationId },
-      select: { bankHolidaysIncludedInAllowance: true, name: true, logoUrl: true },
+      select: { name: true, logoUrl: true },
     }),
   ]);
 
@@ -92,11 +93,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
           <BalanceCards balance={balance} year={selectedYear} />
-          <BankHolidayBreakdown
-            items={bankHolidayItems}
-            year={selectedYear}
-            deductsFromAllowance={organization.bankHolidaysIncludedInAllowance}
-          />
+          <BankHolidayBreakdown items={bankHolidayItems} year={selectedYear} deductsFromAllowance={deductsFromAllowance} />
         </div>
 
         <div className="bg-primary/10 border border-primary/30 rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-2">

@@ -31,6 +31,10 @@ const updateSchema = z.object({
   // A date string ("YYYY-MM-DD") sets it; an empty string clears it; omitting
   // the key entirely leaves whatever's already saved untouched.
   startDate: z.string().optional(),
+  // true/false overrides this person's bank holidays setting specifically;
+  // null explicitly reverts them back to following the business's general
+  // setting; omitting the key entirely leaves it untouched.
+  bankHolidaysIncludedOverride: z.boolean().nullable().optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -64,6 +68,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     email?: string;
     passwordHash?: string;
     startDate?: Date | null;
+    bankHolidaysIncludedOverride?: boolean | null;
   } = { ...rest };
 
   if (email) {

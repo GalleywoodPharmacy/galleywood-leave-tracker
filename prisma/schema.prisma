@@ -123,6 +123,12 @@ model User {
 
   startDate DateTime? @db.Date
 
+  // A rare, specific exception to the business's Bank holidays setting for
+  // just this one person — null means "follow the business setting" (the
+  // normal case for almost everyone); true/false overrides it just for
+  // them, e.g. a contract that handles bank holidays differently.
+  bankHolidaysIncludedOverride Boolean?
+
   // Every user belongs to exactly one organization. onDelete: Cascade so
   // deleting an organization (e.g. a test/abandoned business account via
   // the admin area) cleanly removes every user in it too, rather than
