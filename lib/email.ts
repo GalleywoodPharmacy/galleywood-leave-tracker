@@ -83,6 +83,31 @@ export async function sendLeaveRequestReceivedEmail(params: {
   );
 }
 
+/**
+ * Confirms to a newly-added staff member that their account exists,
+ * with a link to sign in and instructions to set their own password
+ * once they're in. The temporary password itself is never emailed —
+ * their manager shares that directly, as prompted in Settings.
+ */
+export async function sendStaffAccountCreatedEmail(params: {
+  email: string;
+  name: string;
+  organizationName: string;
+}) {
+  await send(
+    params.email,
+    `Your ${params.organizationName} account is ready`,
+    `<p>Hi ${params.name},</p>
+     <p>Your account for <strong>${params.organizationName}</strong>'s staff leave &amp; rota system is now set up.</p>
+     <p>Sign in at <a href="${APP_URL}/login">${APP_URL}/login</a> using this email address and the temporary
+     password your manager has given you.</p>
+     <p>Once you're signed in, go to <strong>Account</strong> and enter that temporary password as your "current
+     password" to set a new one of your own choosing.</p>
+     <p><a href="${APP_URL}/login">Go to the site</a></p>`,
+    params.organizationName
+  );
+}
+
 export async function sendLeaveSubmittedEmail(params: {
   managerEmails: string[];
   organizationName: string;

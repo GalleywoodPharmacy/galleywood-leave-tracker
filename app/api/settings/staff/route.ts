@@ -3,6 +3,8 @@ import { z } from "zod";
 import { requireManager } from "@/lib/require-manager";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
+import { getOrgBranding } from "@/lib/leave";
+import { sendStaffAccountCreatedEmail } from "@/lib/email";
 
 export async function GET() {
   const check = await requireManager();
@@ -38,6 +40,7 @@ export async function POST(req: Request) {
   if (check instanceof NextResponse) return check;
   const session = check;
   if (!session.user.organizationId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const organizationId = session.user.organizationId;
 
   const parsed = createSchema.safeParse(await req.json());
   if (!parsed.success) {
@@ -57,9 +60,16 @@ export async function POST(req: Request) {
       isManager: parsed.data.isManager,
       allowanceAnnualHours: parsed.data.allowanceAnnualHours,
       startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : undefined,
-      organizationId: session.user.organizationId,
+      organizationId,
     },
     select: { id: true, name: true, email: true, isManager: true },
+  });
+
+  const branding = await getOrgBranding(organizationId);
+  await sendStaffAccountCreatedEmail({
+    email: user.email,
+    name: user.name,
+    organizationName: branding.name,
   });
 
   return NextResponse.json({ user }, { status: 201 });
