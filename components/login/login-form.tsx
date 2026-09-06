@@ -55,7 +55,8 @@ export default function LoginForm() {
           </div>
         </div>
 
-        <h1 className="text-xl text-header text-center mb-1">SmartTeamAndRota (STAR)</h1>
+        <h1 className="text-3xl font-bold text-primary text-center tracking-wide mb-0.5">STAR</h1>
+        <p className="text-sm font-medium text-header text-center mb-1">Smart Team and Rota</p>
         <p className="text-ink-soft text-center text-sm mb-8">Staff leave, rota &amp; cover planning</p>
 
         <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 mb-4 text-center">
