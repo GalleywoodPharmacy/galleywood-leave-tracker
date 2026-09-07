@@ -27,7 +27,7 @@ export default function FaqPage() {
             <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
               <path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 7.1-1.01L12 2z" />
             </svg>
-            SmartTeamAndRota (STAR)
+            STAR
           </span>
           <Link href="/login" className="text-sm text-white/85 hover:text-white transition-colors">
             Sign in
@@ -39,7 +39,7 @@ export default function FaqPage() {
         <div>
           <h1 className="text-2xl text-header mb-2">Frequently asked questions</h1>
           <p className="text-sm text-ink-soft">
-            What SmartTeamAndRota (STAR) does and how it works, for staff and managers alike.
+            What STAR (Smart Team and Rota) does and how it works, for staff and managers alike.
           </p>
         </div>
 
@@ -144,9 +144,9 @@ export default function FaqPage() {
           </QA>
           <QA q='What does "No cover yet" mean?'>
             <p>
-              It's a reminder that an approved leave period doesn't have anyone lined up to cover it. Click the
-              entry to assign someone — a colleague from your team, or type in the name of anyone else covering
-              (like a locum or agency worker).
+              It's a reminder that a leave request doesn't have anyone lined up to cover it. Click the entry to
+              assign someone — a colleague from your team, or type in the name of anyone else covering (like a
+              locum or agency worker).
             </p>
           </QA>
         </Section>
@@ -175,15 +175,15 @@ export default function FaqPage() {
         <Section title="Coverage">
           <QA q="How do I arrange cover for my time off?">
             <p>
-              Click your approved leave on the Calendar and choose "Manage cover" — pick a colleague from the list,
-              or type a name for anyone outside the team. You can set cover for the whole period at once, or just a
-              single day within it.
+              Click your leave on the Calendar and choose "Manage cover" — pick a colleague from the list, or type a
+              name for anyone outside the team. You can set cover for the whole period at once, or just a single day
+              within it.
             </p>
           </QA>
           <QA q="What's the Coverage page for?">
             <p>
-              It's a quick-glance list of upcoming approved leave that doesn't have cover arranged yet, so gaps
-              don't get missed. It won't show your own leave there — you'll always find that on the Calendar
+              It's a list of leave that doesn't have cover arranged yet — including leave still awaiting approval —
+              so gaps don't get missed. It won't show your own leave there — you'll always find that on the Calendar
               instead.
             </p>
           </QA>
@@ -193,7 +193,8 @@ export default function FaqPage() {
           <QA q="How do I approve or decline a request?">
             <p>
               Go to Team &amp; Approvals — the Pending queue shows everything awaiting a decision. You can also
-              approve, decline, edit, or cancel directly from the Calendar by clicking the entry.
+              approve, decline, edit, or cancel directly from the Calendar by clicking the entry — including
+              approving and assigning cover in one step.
             </p>
           </QA>
           <QA q="Can I change the dates or hours on someone's request after they've submitted it?">
@@ -235,7 +236,8 @@ export default function FaqPage() {
           <QA q="Can we change our leave policy?">
             <p>
               Yes — the statutory leave weeks (defaults to 5.6, the UK minimum) and whether bank holidays count
-              against the allowance are both configurable in Business settings.
+              against the allowance are both configurable in Business settings, and can even be overridden for one
+              specific person if they have different contract terms.
             </p>
           </QA>
           <QA q="What are the recurring blackout periods for pre-Christmas and pre-Easter?">

@@ -10,6 +10,7 @@ import MonthGrid from "@/components/calendar/month-grid";
 import PrintButton from "@/components/calendar/print-button";
 import CalendarRequestForm from "@/components/calendar/calendar-request-form";
 import LogSickLeave from "@/components/calendar/log-sick-leave";
+import CalendarMonthYearSelect from "@/components/calendar/month-year-select";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -44,9 +45,6 @@ export default async function CalendarPage({
     getOrgSaturdayTeamsConfig(organizationId),
   ]);
 
-  const prev = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
-  const next = month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
-
   // Carry an in-progress selection across a month change, so a leave
   // request spanning a month boundary doesn't lose its start day.
   let selQuery = "";
@@ -60,28 +58,17 @@ export default async function CalendarPage({
       </div>
 
       <main className="p-6 max-w-6xl mx-auto space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <h1 className="text-xl text-header">
             {MONTH_NAMES[month - 1]} {year}
           </h1>
-          <div className="flex gap-2 text-sm print:hidden">
-            <Link
-              href={`/calendar?year=${prev.year}&month=${prev.month}${selQuery}`}
-              className="rounded-lg border border-line px-3 py-1.5 hover:bg-card"
-            >
-              ← Prev
-            </Link>
+          <div className="flex items-center gap-2 flex-wrap print:hidden">
+            <CalendarMonthYearSelect year={year} month={month} selQuery={selQuery} />
             <Link
               href={`/calendar?year=${now.getUTCFullYear()}&month=${now.getUTCMonth() + 1}${selQuery}`}
-              className="rounded-lg border border-line px-3 py-1.5 hover:bg-card"
+              className="rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-card"
             >
               Today
-            </Link>
-            <Link
-              href={`/calendar?year=${next.year}&month=${next.month}${selQuery}`}
-              className="rounded-lg border border-line px-3 py-1.5 hover:bg-card"
-            >
-              Next →
             </Link>
             <PrintButton />
           </div>

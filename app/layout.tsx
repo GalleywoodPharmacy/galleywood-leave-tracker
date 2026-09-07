@@ -4,8 +4,8 @@ import AuthProvider from "@/components/auth-provider";
 import ToastProvider from "@/components/toast-provider";
 
 export const metadata: Metadata = {
-  title: "Smart Team And Rota (STAR)",
-  description: "Staff leave requests, approvals, calendar and shift coverage — powered by SmartTeamAndRota (STAR).",
+  title: "STAR — Smart Team and Rota",
+  description: "Staff leave requests, approvals, calendar and shift coverage — powered by STAR (Smart Team and Rota).",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

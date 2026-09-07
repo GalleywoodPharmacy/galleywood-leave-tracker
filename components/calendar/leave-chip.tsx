@@ -144,6 +144,33 @@ export default function LeaveChip({
     router.refresh();
   }
 
+  /**
+   * Approves the request, then — instead of closing the modal like a plain
+   * approve does — moves straight into the cover-assignment flow within
+   * the same session, so a manager can do both in one go. The underlying
+   * page data refreshes in the background; the cover flow itself doesn't
+   * depend on the (now-stale-until-refresh) status prop, just on the
+   * request/period info, which is all still valid.
+   */
+  async function approveAndAssignCover() {
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/team/requests/${requestId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "decide", decision: "approved" }),
+    });
+    setBusy(false);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(data.error ?? "That didn't work.");
+      return;
+    }
+    showToast("Approved — now assign cover");
+    router.refresh();
+    setView(isMultiDay ? "cover-scope" : "cover-pick");
+  }
+
   async function saveEdit() {
     const h = parseFloat(editHours);
     if (!editStart || !editEnd || isNaN(h) || h <= 0) {
@@ -233,6 +260,15 @@ export default function LeaveChip({
                       className="rounded-lg bg-primary text-white text-sm py-2 hover:bg-header disabled:opacity-60"
                     >
                       Approve
+                    </button>
+                  )}
+                  {isManager && isPending && (
+                    <button
+                      disabled={busy}
+                      onClick={approveAndAssignCover}
+                      className="rounded-lg border border-primary text-primary text-sm py-2 hover:bg-primary/5 disabled:opacity-60"
+                    >
+                      Approve &amp; assign cover
                     </button>
                   )}
                   {isManager && isPending && (

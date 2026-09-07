@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Smart Team And Rota (STAR)",
+    name: "STAR — Smart Team and Rota",
     short_name: "STAR",
-    description: "Staff leave requests, approvals, calendar and shift coverage — powered by SmartTeamAndRota (STAR).",
+    description: "Staff leave requests, approvals, calendar and shift coverage — powered by STAR (Smart Team and Rota).",
     start_url: "/dashboard",
     display: "standalone",
     background_color: "#F5F8FF",

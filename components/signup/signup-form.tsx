@@ -56,8 +56,19 @@ export default function SignupForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-page px-4">
       <div className="w-full max-w-sm">
+        <div className="flex justify-center mb-6">
+          <div className="h-16 w-16 rounded-full bg-primary/10 shadow-sm flex items-center justify-center border border-line">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-primary">
+              <path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 7.1-1.01L12 2z" />
+            </svg>
+          </div>
+        </div>
+
+        <h2 className="text-2xl font-bold text-primary text-center tracking-wide mb-0.5">STAR</h2>
+        <p className="text-sm font-medium text-header text-center mb-6">Smart Team and Rota</p>
+
         <h1 className="text-xl text-header text-center mb-1">Create your business account</h1>
-        <p className="text-ink-soft text-center text-sm mb-8">Powered by Smart Team And Rota (STAR)</p>
+        <p className="text-ink-soft text-center text-sm mb-8">Staff leave, rota &amp; cover planning</p>
 
         <form onSubmit={handleSubmit} className="bg-white border border-line rounded-xl p-6 space-y-4">
           <div>
