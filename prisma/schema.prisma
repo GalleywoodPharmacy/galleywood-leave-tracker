@@ -83,6 +83,12 @@ model Organization {
   saturdayTeamANames     String    @default("")
   saturdayTeamBNames     String    @default("")
 
+  // Off by default for every business, including new sign-ups — a manager
+  // turns this on deliberately once they've set a workplace location for
+  // it, rather than staff seeing a half-configured clock-in button before
+  // anyone's decided to use the feature.
+  timeClockEnabled Boolean @default(false)
+
   users              User[]
   leaveRequests      LeaveRequest[]        @relation("OrgLeaveRequests")
   extraClosedDates   ExtraClosedDate[]     @relation("OrgExtraClosedDates")
@@ -90,6 +96,8 @@ model Organization {
   overtimeEntries    OvertimeEntry[]       @relation("OrgOvertimeEntries")
   blackoutPeriods    ExtraBlackoutPeriod[] @relation("OrgBlackoutPeriods")
   allowanceOverrides AllowanceOverride[]   @relation("OrgAllowanceOverrides")
+  clockShifts        ClockShift[]          @relation("OrgClockShifts")
+  workplaceLocation  WorkplaceLocation?
 
   @@map("organizations")
 }
@@ -145,6 +153,7 @@ model User {
   overtimeEntries    OvertimeEntry[]     @relation("UserOvertimeEntries")
   rota               StaffRota?
   allowanceOverrides AllowanceOverride[]
+  clockShifts        ClockShift[]
 
   @@map("users")
 }
@@ -171,7 +180,52 @@ model AllowanceOverride {
   @@unique([userId, year])
   @@map("allowance_overrides")
 }
+// Where "at work" means, for the GPS-based time clock — one per
+// organization for now (a single-site business). Set by a manager, usually
+// by standing at the workplace and using their own current location.
+model WorkplaceLocation {
+  id             String       @id @default(cuid())
+  organizationId String       @unique
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  name         String @default("Workplace")
+  latitude     Float
+  longitude    Float
+  radiusMeters Int    @default(150)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("workplace_locations")
+}
+
+// One work session — created when someone clocks in (via the GPS time
+// clock button), completed when they clock out. clockOutAt stays null
+// while a shift is still open; a person can only have one open shift at a
+// time. `date` is the calendar day it belongs to (their clock-in's local
+// date), used to group shifts and compare against that weekday's rota.
+model ClockShift {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation("OrgClockShifts", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  date DateTime @db.Date
+
+  clockInAt  DateTime
+  clockInLat Float
+  clockInLng Float
+
+  clockOutAt  DateTime?
+  clockOutLat Float?
+  clockOutLng Float?
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([date])
+  @@map("clock_shifts")
+}
 model LeaveRequest {
   id     String @id @default(cuid())
   userId String
