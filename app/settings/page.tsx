@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getAllStaffRotas, getAllStaffAnnualAllowances } from "@/lib/leave";
+import { getWorkplaceLocation } from "@/lib/timeclock";
 import AppNav from "@/components/app-nav";
 import StaffTable from "@/components/settings/staff-table";
 import ClosedDatesManager from "@/components/settings/closed-dates-manager";
@@ -11,6 +12,7 @@ import BusinessSettings from "@/components/settings/business-settings";
 import BlackoutPeriodsManager from "@/components/settings/blackout-periods-manager";
 import RecurringBlackoutSettings from "@/components/settings/recurring-blackout-settings";
 import SaturdayTeamsSettings from "@/components/settings/saturday-teams-settings";
+import WorkplaceLocationSettings from "@/components/settings/workplace-location-settings";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -21,12 +23,13 @@ export default async function SettingsPage() {
   const currentYear = new Date().getUTCFullYear();
   const years = [currentYear, currentYear + 1, currentYear + 2];
 
-  const [staff, closedDates, staffRotas, organization, blackoutPeriods] = await Promise.all([
+  const [staff, closedDates, staffRotas, organization, blackoutPeriods, workplaceLocation] = await Promise.all([
     getAllStaffAnnualAllowances(years, organizationId),
     prisma.extraClosedDate.findMany({ where: { organizationId }, orderBy: { date: "asc" } }),
     getAllStaffRotas(organizationId),
     prisma.organization.findUniqueOrThrow({ where: { id: organizationId } }),
     prisma.extraBlackoutPeriod.findMany({ where: { organizationId }, orderBy: { startDate: "asc" } }),
+    getWorkplaceLocation(organizationId),
   ]);
 
   return (
@@ -111,6 +114,23 @@ export default async function SettingsPage() {
                 ? organization.saturdayTeamBNames.split(",").map((n) => n.trim()).filter(Boolean)
                 : [],
             }}
+          />
+        </section>
+
+        <section>
+          <h2 className="text-header text-lg mb-3">Time Clock</h2>
+          <WorkplaceLocationSettings
+            timeClockEnabled={organization.timeClockEnabled}
+            location={
+              workplaceLocation
+                ? {
+                    name: workplaceLocation.name,
+                    latitude: workplaceLocation.latitude,
+                    longitude: workplaceLocation.longitude,
+                    radiusMeters: workplaceLocation.radiusMeters,
+                  }
+                : null
+            }
           />
         </section>
       </main>
