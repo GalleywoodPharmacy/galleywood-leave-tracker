@@ -5,9 +5,21 @@ import Link from "next/link";
 import SignOutButton from "./sign-out-button";
 import { HomeIcon, CalendarIcon, UmbrellaIcon, UserIcon, PeopleIcon, SettingsIcon, ReportIcon, HelpIcon } from "./nav-icons";
 
+// Defined inline rather than added to nav-icons.tsx, to avoid touching a
+// shared file whose other contents weren't in view for this change.
+function ClockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 3" />
+    </svg>
+  );
+}
+
 const LINKS = [
   { href: "/dashboard", label: "Dashboard", icon: HomeIcon },
   { href: "/calendar", label: "Calendar", icon: CalendarIcon },
+  { href: "/timeclock", label: "Time Clock", icon: ClockIcon },
   { href: "/coverage", label: "Coverage", icon: UmbrellaIcon },
   { href: "/account", label: "Account", icon: UserIcon },
 ];
