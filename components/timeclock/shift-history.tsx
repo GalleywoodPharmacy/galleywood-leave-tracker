@@ -8,7 +8,7 @@ function fmtDate(key: string) {
   });
 }
 function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
 }
 
 const COMPARISON_LABEL: Record<ShiftWithComparison["comparison"], string> = {
